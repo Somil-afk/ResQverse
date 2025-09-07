@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chemical Spill Safety Adventure</title>
+    <style>
+        /* General page styling */
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #333;
+            color: #333;
+        }
+
+        /* The main container for the game canvas and UI */
+        #game-container {
+            width: 800px;
+            height: 600px;
+            border: 5px solid #000;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background-color: #fff;
+            display: none; /* Hidden by default, shown after start */
+        }
+
+        /* Start and End Screen Styling */
+        #start-screen, #end-screen {
+            width: 800px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: #fffde7;
+            border: 5px solid #000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-title {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            color: #f57f17;
+        }
+        
+        .game-subtitle {
+            font-size: 1.5em;
+            margin-bottom: 40px;
+        }
+
+        .action-btn {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #ffb300;
+            color: black;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .action-btn:hover {
+            background-color: #f57f17;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        #end-screen .action-btn {
+            background-color: #5cb85c;
+            color: white;
+        }
+        #end-screen .action-btn:hover {
+             background-color: #4cae4c;
+        }
+
+
+        /* The canvas where the comic panels are drawn */
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Dialogue box styling */
+        #dialogue-box {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 4px solid #000;
+            border-radius: 15px;
+            padding: 15px 20px;
+            z-index: 3;
+            font-size: 1.3em;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        
+        #speaker-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #f57f17;
+        }
+
+        #dialogue-text {
+            margin: 0;
+        }
+
+        /* Next button styling */
+        #next-btn {
+            position: absolute;
+            bottom: 25px;
+            right: 30px;
+            padding: 10px 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #ffb300;
+            color: black;
+            border-radius: 10px;
+            z-index: 4;
+            box-shadow: 3px 3px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #next-btn:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* Container for multiple choice questions */
+        #choices-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 15px;
+            width: 80%;
+            max-width: 450px;
+        }
+
+        .choice-btn {
+            padding: 15px;
+            font-size: 1.1em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            background-color: #f57f17;
+            color: white;
+            border: 3px solid #000;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+        
+        .choice-btn:hover {
+            background-color: #ffb300;
+            color: #000;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+        
+        /* ADDED: Styles for the new persistent exit button */
+        #persistent-exit-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: #e53e3e; /* Red color */
+            color: white;
+            border: 3px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-size: 28px;
+            line-height: 1;
+            font-weight: bold;
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        #persistent-exit-button:hover {
+            background-color: #c53030;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+    </style>
+</head>
+<body>
+    <a href="/dashboard" id="persistent-exit-button">&times;</a>
+
+    <div id="start-screen">
+        <h1 class="game-title">Chemical Spill Safety Adventure</h1>
+        <p class="game-subtitle">A story about making safe choices.</p>
+        <button id="start-btn" class="action-btn">Start Adventure</button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+
+        <div id="dialogue-box">
+            <p id="speaker-name">Rohan</p>
+            <p id="dialogue-text">Loading...</p>
+        </div>
+        
+        <div id="choices-container">
+            <button class="choice-btn" id="choice1"></button>
+            <button class="choice-btn" id="choice2"></button>
+            <button class="choice-btn" id="choice3"></button>
+        </div>
+
+        <button id="next-btn">Next ▶</button>
+    </div>
+    
+    <div id="end-screen" style="display: none;">
+        <h1 class="game-title">You Handled That Safely!</h1>
+        <p class="game-subtitle">You followed instructions and made smart choices. What would you like to do next?</p>
+        <div>
+            <button id="restart-btn" class="action-btn">Play Again</button>
+            </div>
+    </div>
+
+    <script>
+        // --- DOM ELEMENT REFERENCES ---
+        const startScreen = document.getElementById('start-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        // REMOVED: const exitBtn = document.getElementById('exit-btn');
+        const gameContainer = document.getElementById('game-container');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const dialogueBox = document.getElementById('dialogue-box');
+        const speakerName = document.getElementById('speaker-name');
+        const dialogueText = document.getElementById('dialogue-text');
+        const nextBtn = document.getElementById('next-btn');
+        const choicesContainer = document.getElementById('choices-container');
+        const choiceButtons = [
+            document.getElementById('choice1'),
+            document.getElementById('choice2'),
+            document.getElementById('choice3')
+        ];
+
+        // --- GAME STATE ---
+        let currentPage = 0;
+        let images = {}; // Will hold all loaded image objects
+        let loadedImagesCount = 0;
+        let gameStarted = false;
+
+        // --- IMAGE DEFINITIONS ---
+        const imageSources = {
+            outside: 'images/outsidec.png',
+            safeRoom: 'images/insidec.png',
+        };
+
+        // --- STORY DEFINITION ---
+        const story = [
+            // Page 0-2: Intro
+            { bg: 'outside', speaker: 'Rohan', dialogue: "Perfect day for cricket! Your turn to bowl, Priya." },
+            { bg: 'outside', speaker: 'Priya', dialogue: "Okay, get ready! Wait... do you smell that? It's a strange, sharp smell." },
+            { bg: 'outside', speaker: 'Siren', dialogue: "*WAAAAAIIIILLLL!* A loud siren starts blaring from the nearby industrial area." },
+            // Page 3: Question 1
+            { bg: 'outside', speaker: 'Rohan', dialogue: "That's the emergency siren! What's the first thing we must do?", choices: [{ text: "Get inside a building immediately.", target: 4 }, { text: "Go closer to see what's happening.", target: 10 }, { text: "It's probably just a drill, let's keep playing.", target: 13 }] },
+            // Page 4: Correct Path 1
+            { bg: 'outside', speaker: 'Priya', dialogue: "You're right! We need to get indoors right now to avoid whatever is in the air. To my house, quick!" },
+            { bg: 'outside', speaker: 'Narrator', dialogue: "They run inside the nearest house and slam the door shut." },
+            // Page 6: Question 2
+            { bg: 'safeRoom', speaker: 'Rohan', dialogue: "We're inside. How do we make this room as safe as possible from the outside air?", choices: [{ text: "Seal doors and windows with wet towels.", target: 7 }, { text: "Open the windows to get fresh air.", target: 16 }, { text: "Just stay away from the door.", target: 19 }] },
+            // Page 7: Correct Path 2
+            { bg: 'safeRoom', speaker: 'Priya', dialogue: "Exactly. We need to block all the gaps. I'll get towels for the door, you get the windows. And turn off the AC and fans!" },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "They work quickly to seal the room, creating a 'shelter-in-place'." },
+            // Page 9: Question 3
+            { bg: 'safeRoom', speaker: 'Rohan', dialogue: "Okay, the room is sealed. How do we get reliable information about what's happening?", choices: [{ text: "Turn on the radio or TV for official news.", target: 22 }, { text: "Call our friends to see what they know.", target: 25 }, { text: "Look out the window to see the smoke.", target: 28 }] },
+            // Page 10-15: Wrong Paths for Q1
+            { bg: 'outside', speaker: 'Narrator', dialogue: "Going towards a potential chemical spill is extremely dangerous. The fumes could be toxic and cause serious harm." },
+            { bg: 'outside', speaker: 'Narrator', dialogue: "You should always move away from the danger, not towards it." },
+            { bg: 'outside', speaker: 'Safety Tip', dialogue: "Your first priority is to get to safety. Let's make the right choice.", choices: [{ text: "Try again", target: 3 }] },
+            { bg: 'outside', speaker: 'Narrator', dialogue: "You should never assume an emergency siren is a drill. Wasting time could expose you to danger." },
+            { bg: 'outside', speaker: 'Narrator', dialogue: "Always treat alarms and sirens as real emergencies until you are told otherwise by officials." },
+            { bg: 'outside', speaker: 'Safety Tip', dialogue: "Always act immediately when you hear a warning. What is the correct first step?", choices: [{ text: "Try again", target: 3 }] },
+            // Page 16-21: Wrong Paths for Q2
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "Opening windows is the worst thing you can do! That would let the contaminated outside air into your safe room." },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "The goal is to create an airtight seal to keep the bad air out." },
+            { bg: 'safeRoom', speaker: 'Safety Tip', dialogue: "You need to block the outside air, not invite it in. Let's try again.", choices: [{ text: "Try again", target: 6 }] },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "Just closing the door isn't enough. Air can easily get through the cracks around the door and windows." },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "To be truly safe, you need to seal all those gaps to stop the outside air from leaking in." },
+            { bg: 'safeRoom', speaker: 'Safety Tip', dialogue: "How can you create a better barrier against the outside air?", choices: [{ text: "Try again", target: 6 }] },
+            // Page 22: Correct Path 3
+            { bg: 'safeRoom', speaker: 'Priya', dialogue: "Good idea. The radio will have updates from the local authorities. They'll tell us what the chemical is and what to do." },
+            // Page 23: New Event
+            { bg: 'safeRoom', speaker: 'Radio', dialogue: "*...the spill has been contained. Repeat, the immediate danger is over. Please stay indoors until the 'all clear' is given...*" },
+            // Page 24: Question 4
+            { bg: 'safeRoom', speaker: 'Rohan', dialogue: "Okay, so the spill is stopped, but we need to wait for the 'all clear'. If we had to move, how should we protect ourselves?", choices: [{ text: "Cover our nose and mouth with a damp cloth.", target: 31 }, { text: "Just run really fast to the next building.", target: 34 }, { text: "The danger is over, we don't need to do anything.", target: 37 }] },
+            // Page 25-30: Wrong Paths for Q3
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "Your friends might have heard rumors, but official news sources are the only way to get accurate information." },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "During an emergency, relying on gossip can lead to dangerous decisions. Always trust official channels." },
+            { bg: 'safeRoom', speaker: 'Safety Tip', dialogue: "Where can you get the most trustworthy information?", choices: [{ text: "Try again", target: 9 }] },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "Looking out the window exposes you to potential danger and doesn't give you reliable information." },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "Many dangerous chemicals are invisible, so you can't tell if it's safe just by looking. Stay away from windows and listen to authorities." },
+            { bg: 'safeRoom', speaker: 'Safety Tip', dialogue: "You can't trust your eyes in a chemical spill. What is a better source of information?", choices: [{ text: "Try again", target: 9 }] },
+            // Page 31: Correct Path 4
+            { bg: 'safeRoom', speaker: 'Priya', dialogue: "Right. A damp cloth can help filter out some harmful particles in the air if we have to evacuate." },
+            // Page 32: New Event
+            { bg: 'safeRoom', speaker: 'Radio', dialogue: "*...The 'all clear' has been given for the Jabalpur area. Air quality is now safe. You may now open your windows...*" },
+            // Page 33: Question 5
+            { bg: 'safeRoom', speaker: 'Rohan', dialogue: "Great! We can finally get a glass of water. But wait, is the tap water safe to drink?", choices: [{ text: "Wait until officials say it's safe.", target: 40 }, { text: "It's fine, the spill was in the air.", target: 43 }, { text: "We should boil it first just in case.", target: 46 }] },
+            // Page 34-39: Wrong Paths for Q4
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "Even if the spill is contained, there can be lingering chemicals in the air. You should always take precautions." },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "Running fast won't stop you from breathing in potentially harmful fumes." },
+            { bg: 'safeRoom', speaker: 'Safety Tip', dialogue: "How can you protect your lungs when you breathe?", choices: [{ text: "Try again", target: 24 }] },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "The 'all clear' hasn't been given yet. This means there could still be pockets of dangerous air outside." },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "Never assume it's completely safe until you hear it from official sources." },
+            { bg: 'safeRoom', speaker: 'Safety Tip', dialogue: "It's not over until the authorities say it's over. What precaution should you take?", choices: [{ text: "Try again", target: 24 }] },
+            // Page 40: Correct Path 5
+            { bg: 'safeRoom', speaker: 'Priya', dialogue: "That's the smartest choice. The spill could have contaminated the water supply. We have to wait for the water department to say it's safe to drink." },
+            // Page 41: Conclusion
+            { bg: 'outside', speaker: 'Narrator', dialogue: "Later, officials confirm the water is safe. By following every step correctly, Rohan and Priya stayed completely safe during the emergency." },
+            { bg: 'outside', speaker: 'Congratulations!', dialogue: "You knew exactly what to do during a chemical spill. You're a safety expert!", type: 'end' },
+            // Page 43-48: Wrong Paths for Q5
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "This is a dangerous assumption. Spilled chemicals can seep into the ground and contaminate water sources." },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "Never drink tap water after a chemical spill until authorities have tested it and declared it safe." },
+            { bg: 'safeRoom', speaker: 'Safety Tip', dialogue: "You can't be sure the water is clean. What is the safest course of action?", choices: [{ text: "Try again", target: 33 }] },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "Boiling water kills germs and bacteria, but it does NOT remove chemical contaminants." },
+            { bg: 'safeRoom', speaker: 'Narrator', dialogue: "In fact, boiling could even concentrate some dangerous chemicals, making the water more harmful. Only drink bottled water until you get the 'all clear'." },
+            { bg: 'safeRoom', speaker: 'Safety Tip', dialogue: "Boiling doesn't work for chemicals. What is the only way to know the water is safe?", choices: [{ text: "Try again", target: 33 }] },
+        ];
+
+
+        // --- IMAGE LOADING ---
+        function preloadImages(callback) {
+            const sources = Object.keys(imageSources);
+            sources.forEach(name => {
+                images[name] = new Image();
+                images[name].onload = () => { 
+                    loadedImagesCount++;
+                    if (loadedImagesCount === sources.length) {
+                        callback(); // Fire the callback when all images are loaded
+                    }
+                };
+                images[name].src = imageSources[name];
+            });
+        }
+
+        // --- CORE GAME FUNCTIONS ---
+        function drawPage() {
+            const page = story[currentPage];
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            if (images[page.bg]) ctx.drawImage(images[page.bg], 0, 0, canvas.width, canvas.height);
+        }
+
+        function updateUI() {
+            const page = story[currentPage];
+
+            if (page.type === 'end') {
+                showEndScreen();
+                return;
+            }
+
+            dialogueBox.style.display = 'block';
+            speakerName.textContent = page.speaker;
+            dialogueText.textContent = page.dialogue;
+
+            if (page.choices) {
+                choicesContainer.style.display = 'flex';
+                nextBtn.style.display = 'none';
+                choiceButtons.forEach((button, index) => {
+                    if (page.choices[index]) {
+                        button.style.display = 'block';
+                        button.textContent = page.choices[index].text;
+                        button.onclick = () => { currentPage = page.choices[index].target; renderScene(); };
+                    } else {
+                        button.style.display = 'none';
+                    }
+                });
+            } else {
+                choicesContainer.style.display = 'none';
+                nextBtn.style.display = (currentPage >= story.length - 1) ? 'none' : 'block';
+            }
+        }
+        
+        function renderScene() {
+            if (currentPage >= story.length) currentPage = story.length - 1;
+            drawPage();
+            updateUI();
+        }
+        
+        function showEndScreen() {
+            gameContainer.style.display = 'none';
+            endScreen.style.display = 'flex';
+        }
+
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', () => {
+            startBtn.textContent = 'Loading...';
+            if (!gameStarted) {
+                preloadImages(() => {
+                    gameStarted = true;
+                    startScreen.style.display = 'none';
+                    gameContainer.style.display = 'block';
+                    renderScene();
+                });
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const page = story[currentPage];
+            if (page.nextTarget !== undefined) {
+                currentPage = page.nextTarget;
+            } else if (currentPage < story.length - 1) {
+                currentPage++;
+            }
+            renderScene();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            endScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
+            currentPage = 0;
+            renderScene();
+        });
+
+        // REMOVED old exit button listener
+
+    </script>
+</body>
+</html>

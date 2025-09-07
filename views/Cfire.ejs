@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Drill Adventure</title>
+    <style>
+        /* General page styling */
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #333;
+            color: #333;
+        }
+
+        /* The main container for the game canvas and UI */
+        #game-container {
+            width: 800px;
+            height: 600px;
+            border: 5px solid #000;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background-color: #fff;
+            display: none; /* Hidden by default, shown after start */
+        }
+
+        /* Start and End Screen Styling */
+        #start-screen, #end-screen {
+            width: 800px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: #fff0f0;
+            border: 5px solid #000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-title {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            color: #d9534f;
+        }
+        
+        .game-subtitle {
+            font-size: 1.5em;
+            margin-bottom: 40px;
+        }
+
+        .action-btn {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #f0ad4e;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .action-btn:hover {
+            background-color: #ec971f;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        #end-screen .action-btn {
+            background-color: #5cb85c;
+            color: white;
+            margin: 10px;
+        }
+        #end-screen .action-btn:hover {
+             background-color: #4cae4c;
+        }
+
+
+        /* The canvas where the comic panels are drawn */
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Dialogue box styling */
+        #dialogue-box {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 4px solid #000;
+            border-radius: 15px;
+            padding: 15px 20px;
+            z-index: 3;
+            font-size: 1.3em;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        
+        #speaker-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #d9534f;
+        }
+
+        #dialogue-text {
+            margin: 0;
+        }
+
+        /* Next button styling */
+        #next-btn {
+            position: absolute;
+            bottom: 25px;
+            right: 30px;
+            padding: 10px 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #f0ad4e;
+            border-radius: 10px;
+            z-index: 4;
+            box-shadow: 3px 3px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #next-btn:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* Container for multiple choice questions */
+        #choices-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 15px;
+            width: 80%;
+            max-width: 450px;
+        }
+
+        .choice-btn {
+            padding: 15px;
+            font-size: 1.1em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            background-color: #d9534f;
+            color: white;
+            border: 3px solid #000;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+        
+        .choice-btn:hover {
+            background-color: #f0ad4e;
+            color: #000;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+        
+        /* ADDED: Styles for the new persistent exit button */
+        #persistent-exit-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: #e53e3e; /* Red color */
+            color: white;
+            border: 3px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-size: 28px;
+            line-height: 1;
+            font-weight: bold;
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        #persistent-exit-button:hover {
+            background-color: #c53030;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+    </style>
+</head>
+<body>
+    <a href="/dashboard" id="persistent-exit-button">&times;</a>
+
+    <div id="start-screen">
+        <h1 class="game-title">Fire Drill Adventure</h1>
+        <p class="game-subtitle">A story about home fire safety.</p>
+        <button id="start-btn" class="action-btn">Start Drill</button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+
+        <div id="dialogue-box">
+            <p id="speaker-name">Aryan</p>
+            <p id="dialogue-text">Loading...</p>
+        </div>
+        
+        <div id="choices-container">
+            <button class="choice-btn" id="choice1"></button>
+            <button class="choice-btn" id="choice2"></button>
+            <button class="choice-btn" id="choice3"></button>
+        </div>
+
+        <button id="next-btn">Next ▶</button>
+    </div>
+    
+    <div id="end-screen" style="display: none;">
+        <h1 class="game-title">You're a Safety Hero!</h1>
+        <p class="game-subtitle">You followed your fire escape plan perfectly. What would you like to do next?</p>
+        <div>
+            <button id="restart-btn" class="action-btn">Play Again</button>
+            </div>
+    </div>
+
+    <script>
+        // --- DOM ELEMENT REFERENCES ---
+        const startScreen = document.getElementById('start-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        // REMOVED: const exitBtn = document.getElementById('exit-btn');
+        const gameContainer = document.getElementById('game-container');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const dialogueBox = document.getElementById('dialogue-box');
+        const speakerName = document.getElementById('speaker-name');
+        const dialogueText = document.getElementById('dialogue-text');
+        const nextBtn = document.getElementById('next-btn');
+        const choicesContainer = document.getElementById('choices-container');
+        const choiceButtons = [
+            document.getElementById('choice1'),
+            document.getElementById('choice2'),
+            document.getElementById('choice3')
+        ];
+
+        // --- GAME STATE ---
+        let currentPage = 0;
+        let images = {}; // Will hold all loaded image objects
+        let loadedImagesCount = 0;
+        let gameStarted = false;
+
+        // --- IMAGE DEFINITIONS (FIXED) ---
+        const imageSources = {
+            houseInside: 'images/livingroomf.png',
+            meetingPoint: 'images/mailboxf.png',
+        };
+
+        // --- STORY DEFINITION ---
+        const story = [
+            // Page 0-2: Intro
+            { bg: 'houseInside', speaker: 'Aryan', dialogue: "Checkmate! I win again!" },
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "No fair, you always win at chess. Let's play something else... what's that noise?" },
+            { bg: 'houseInside', speaker: 'Sound', dialogue: "*BEEP! BEEP! BEEP!* The smoke alarm is going off!" },
+            // Page 3: Question 1
+            { bg: 'houseInside', speaker: 'Aryan', dialogue: "The smoke alarm! What's the very first thing we should do?", choices: [{ text: "Get out of the house immediately.", target: 4 }, { text: "Call 911 right away.", target: 10 }, { text: "Find where the smoke is coming from.", target: 13 }] },
+            // Page 4: Correct Path 1
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "You're right! Our family plan is 'Get Out, Stay Out!' Let's go to the front door." },
+            // Page 5: New event
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "They crawl on the floor to stay under any potential smoke and reach the front door. It is closed." },
+            // Page 6: Question 2
+            { bg: 'houseInside', speaker: 'Aryan', dialogue: "The door is closed. How should we check if it's safe to open?", choices: [{ text: "Feel it with the back of your hand.", target: 7 }, { text: "Kick it open quickly.", target: 16 }, { text: "Look through the peephole.", target: 19 }] },
+            // Page 7: Correct Path 2
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "Good thinking. I'll feel the door, the doorknob, and the cracks for heat." },
+            // Page 8: New event
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "It's hot! The door is hot! We can't go this way!" },
+            // Page 9: Question 3
+            { bg: 'houseInside', speaker: 'Aryan', dialogue: "The front door is blocked by fire! What's our backup plan?", choices: [{ text: "Go to our second exit, the back door.", target: 22 }, { text: "Hide in the bathroom.", target: 25 }, { text: "Break a window and climb out.", target: 28 }] },
+            // Page 10-15: Wrong Paths for Q1
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Calling 911 is important, but your first priority is to get yourself to safety." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "You should only call 911 once you are safely outside the house." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "Your life is more important than a phone call. Get out first! Let's try again.", choices: [{ text: "Try again", target: 3 }] },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Wasting time looking for the fire is dangerous. A fire can double in size every minute!" },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "You might get trapped or breathe in toxic smoke. The alarm means you need to escape NOW." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "Never investigate a fire alarm. Your only job is to escape. What's the right choice?", choices: [{ text: "Try again", target: 3 }] },
+            // Page 16-21: Wrong Paths for Q2
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Never kick open a door during a fire! If there's a fire on the other side, opening the door will feed it oxygen, causing a dangerous backdraft." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "This could cause the fire to explode into the room with you." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "That was very dangerous. There is a much safer way to check a door. Let's try again.", choices: [{ text: "Try again", target: 6 }] },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Looking through a peephole is not a reliable way to check for a fire. Heat and smoke could be low, or the fire could be just out of view." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Plus, the peephole itself could be dangerously hot. The best way is to feel for heat." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "There's a better, safer way to know what's on the other side. Let's rethink that.", choices: [{ text: "Try again", target: 6 }] },
+            // Page 22: Correct Path 3
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "Yes! Our escape plan has two exits. Let's crawl to the back door and get out!" },
+            // Page 23: New Event
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "They crawl to the back of the house, check the door (it's cool), and get outside safely." },
+            // Page 24: Question 4
+            { bg: 'meetingPoint', speaker: 'Aryan', dialogue: "We're out! Phew! Where do we go now?", choices: [{ text: "To our family's safe meeting point.", target: 31 }, { text: "Run to the neighbor's house to tell them.", target: 34 }, { text: "Hide in the backyard so we're safe.", target: 37 }] },
+            // Page 25-30: Wrong Paths for Q3
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Hiding from a fire is never a safe option. The fire and smoke can find you." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Your goal should always be to get out of the building." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "Every fire escape plan needs two ways out. What is the alternate exit?", choices: [{ text: "Try again", target: 9 }] },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Breaking a window can be dangerous. You could get cut on the glass, and it might not be a safe way down." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "You should only use a window as a last resort if all other exits are blocked, and only if you can get out safely." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "Always use a door if you can. What is your other planned exit?", choices: [{ text: "Try again", target: 9 }] },
+            // Page 31: Correct Path 4
+            { bg: 'meetingPoint', speaker: 'Khushi', dialogue: "That's the plan! Let's go to the mailbox at the end of the driveway so Mom and Dad know where to find us." },
+            // Page 32: New Event
+            { bg: 'meetingPoint', speaker: 'Narrator', dialogue: "They wait safely by the mailbox, far away from the house." },
+            // Page 33: Question 5
+            { bg: 'meetingPoint', speaker: 'Aryan', dialogue: "Okay, we're safe at the meeting point. What is the most important rule now?", choices: [{ text: "Stay here and don't go back inside for ANY reason.", target: 40 }, { text: "Go back in to get our pet cat, Mittens!", target: 43 }, { text: "One of us should run and get the hose.", target: 46 }] },
+            // Page 34-39: Wrong Paths for Q4
+            { bg: 'meetingPoint', speaker: 'Narrator', dialogue: "While it's good to alert neighbors, your first job is to go to your designated meeting spot." },
+            { bg: 'meetingPoint', speaker: 'Narrator', dialogue: "This lets your family and firefighters know that you are safe and accounted for. If someone is missing, firefighters might risk their lives looking for them." },
+            { bg: 'meetingPoint', speaker: 'Safety Tip', dialogue: "Where did your family agree to meet in an emergency?", choices: [{ text: "Try again", target: 24 }] },
+            { bg: 'meetingPoint', speaker: 'Narrator', dialogue: "Hiding might make it hard for your parents or firefighters to find you. They need to know you're safe!" },
+            { bg: 'meetingPoint', speaker: 'Narrator', dialogue: "Always go to your pre-planned, open meeting spot." },
+            { bg: 'meetingPoint', speaker: 'Safety Tip', dialogue: "You need to be seen to be counted as safe. Where is your meeting spot?", choices: [{ text: "Try again", target: 24 }] },
+            // Page 40: Correct Path 5
+            { bg: 'meetingPoint', speaker: 'Khushi', dialogue: "Definitely! Once we're out, we stay out! We'll tell the firefighters about Mittens so they can rescue her." },
+            // Page 41: Conclusion
+            { bg: 'meetingPoint', speaker: 'Narrator', dialogue: "A fire truck arrives. It turns out it was just burnt toast, but the firefighters are very proud of them." },
+            { bg: 'meetingPoint', speaker: 'Congratulations!', dialogue: "You knew your escape plan, had two exits, and went to your meeting spot. You're a safety hero!", type: 'end' },
+            // Page 43-48: Wrong Paths for Q5
+            { bg: 'meetingPoint', speaker: 'Narrator', dialogue: "NEVER go back into a burning building! You could get trapped, hurt, or worse." },
+            { bg: 'meetingPoint', speaker: 'Narrator', dialogue: "Tell the firefighters about your pet. They have the training and equipment to perform rescues safely." },
+            { bg: 'meetingPoint', speaker: 'Safety Tip', dialogue: "The most important rule is 'Get Out, Stay Out'. Let's make the safe choice.", choices: [{ text: "Try again", target: 33 }] },
+            { bg: 'meetingPoint', speaker: 'Narrator', dialogue: "Never try to fight a fire yourself. Fires can grow and spread unpredictably fast." },
+            { bg: 'meetingPoint', speaker: 'Narrator', dialogue: "Leave firefighting to the professionals. Your only job is to get to safety." },
+            { bg: 'meetingPoint', speaker: 'Safety Tip', dialogue: "You are not a firefighter. What is your most important job right now?", choices: [{ text: "Try again", target: 33 }] },
+        ];
+
+
+        // --- IMAGE LOADING ---
+        function preloadImages(callback) {
+            const sources = Object.keys(imageSources);
+            if (sources.length === 0) { // Handle case with no images
+                callback();
+                return;
+            }
+            sources.forEach(name => {
+                images[name] = new Image();
+                images[name].onload = () => { 
+                    loadedImagesCount++;
+                    if (loadedImagesCount === sources.length) {
+                        callback(); // Fire the callback when all images are loaded
+                    }
+                };
+                images[name].src = imageSources[name];
+            });
+        }
+
+        // --- CORE GAME FUNCTIONS ---
+        function drawPage() {
+            const page = story[currentPage];
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            if (images[page.bg]) ctx.drawImage(images[page.bg], 0, 0, canvas.width, canvas.height);
+        }
+
+        function updateUI() {
+            const page = story[currentPage];
+
+            if (page.type === 'end') {
+                showEndScreen();
+                return;
+            }
+
+            dialogueBox.style.display = 'block';
+            speakerName.textContent = page.speaker;
+            dialogueText.textContent = page.dialogue;
+
+            if (page.choices) {
+                choicesContainer.style.display = 'flex';
+                nextBtn.style.display = 'none';
+                choiceButtons.forEach((button, index) => {
+                    if (page.choices[index]) {
+                        button.style.display = 'block';
+                        button.textContent = page.choices[index].text;
+                        button.onclick = () => { currentPage = page.choices[index].target; renderScene(); };
+                    } else {
+                        button.style.display = 'none';
+                    }
+                });
+            } else {
+                choicesContainer.style.display = 'none';
+                nextBtn.style.display = (currentPage >= story.length - 1) ? 'none' : 'block';
+            }
+        }
+        
+        function renderScene() {
+            if (currentPage >= story.length) currentPage = story.length - 1;
+            drawPage();
+            updateUI();
+        }
+        
+        function showEndScreen() {
+            gameContainer.style.display = 'none';
+            endScreen.style.display = 'flex';
+        }
+
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', () => {
+            startBtn.textContent = 'Loading...';
+            startBtn.disabled = true;
+            if (!gameStarted) {
+                preloadImages(() => {
+                    gameStarted = true;
+                    startScreen.style.display = 'none';
+                    gameContainer.style.display = 'block';
+                    renderScene();
+                });
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const page = story[currentPage];
+            if (page.nextTarget !== undefined) {
+                currentPage = page.nextTarget;
+            } else if (currentPage < story.length - 1) {
+                currentPage++;
+            }
+            renderScene();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            endScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
+            currentPage = 0;
+            renderScene();
+        });
+
+        // REMOVED: Old exit button listener
+
+    </script>
+</body>
+</html>

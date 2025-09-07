@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flood Safety Adventure</title>
+    <style>
+        /* General page styling */
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #333;
+            color: #333;
+        }
+
+        /* The main container for the game canvas and UI */
+        #game-container {
+            width: 800px;
+            height: 600px;
+            border: 5px solid #000;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background-color: #fff;
+            display: none; /* Hidden by default, shown after start */
+        }
+
+        /* Start and End Screen Styling */
+        #start-screen, #end-screen {
+            width: 800px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: #f0f8ff;
+            border: 5px solid #000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-title {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            color: #003366;
+        }
+        
+        .game-subtitle {
+            font-size: 1.5em;
+            margin-bottom: 40px;
+        }
+
+        .action-btn {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #ffcc00;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .action-btn:hover {
+            background-color: #e9c46a;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        #end-screen .action-btn {
+            background-color: #2a9d8f;
+            color: white;
+            margin: 10px;
+        }
+        #end-screen .action-btn:hover {
+             background-color: #26897f;
+        }
+
+
+        /* The canvas where the comic panels are drawn */
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Dialogue box styling */
+        #dialogue-box {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 4px solid #000;
+            border-radius: 15px;
+            padding: 15px 20px;
+            z-index: 3;
+            font-size: 1.3em;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        
+        #speaker-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #003366;
+        }
+
+        #dialogue-text {
+            margin: 0;
+        }
+
+        /* Next button styling */
+        #next-btn {
+            position: absolute;
+            bottom: 25px;
+            right: 30px;
+            padding: 10px 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #ffcc00;
+            border-radius: 10px;
+            z-index: 4;
+            box-shadow: 3px 3px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #next-btn:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* Container for multiple choice questions */
+        #choices-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 15px;
+            width: 80%;
+            max-width: 450px;
+        }
+
+        .choice-btn {
+            padding: 15px;
+            font-size: 1.1em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            background-color: #2a9d8f;
+            color: white;
+            border: 3px solid #000;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+        
+        .choice-btn:hover {
+            background-color: #e9c46a;
+            color: #000;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+        
+        /* ADDED: Styles for the new persistent exit button */
+        #persistent-exit-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: #e53e3e; /* Red color */
+            color: white;
+            border: 3px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-size: 28px;
+            line-height: 1;
+            font-weight: bold;
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        #persistent-exit-button:hover {
+            background-color: #c53030;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+    </style>
+</head>
+<body>
+    <a href="/dashboard" id="persistent-exit-button">&times;</a>
+
+    <div id="start-screen">
+        <h1 class="game-title">Flood Safety Adventure</h1>
+        <p class="game-subtitle">A story about making safe choices.</p>
+        <button id="start-btn" class="action-btn">Start Adventure</button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+
+        <div id="dialogue-box">
+            <p id="speaker-name">Aryan</p>
+            <p id="dialogue-text">Loading...</p>
+        </div>
+        
+        <div id="choices-container">
+            <button class="choice-btn" id="choice1"></button>
+            <button class="choice-btn" id="choice2"></button>
+            <button class="choice-btn" id="choice3"></button>
+        </div>
+
+        <button id="next-btn">Next ▶</button>
+    </div>
+    
+    <div id="end-screen" style="display: none;">
+        <h1 class="game-title">You're Safe and Dry!</h1>
+        <p class="game-subtitle">You successfully navigated the flood. What would you like to do next?</p>
+        <div>
+            <button id="restart-btn" class="action-btn">Play Again</button>
+            </div>
+    </div>
+
+    <script>
+        // --- DOM ELEMENT REFERENCES ---
+        const startScreen = document.getElementById('start-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        // REMOVED: const exitBtn = document.getElementById('exit-btn');
+        const gameContainer = document.getElementById('game-container');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const dialogueBox = document.getElementById('dialogue-box');
+        const speakerName = document.getElementById('speaker-name');
+        const dialogueText = document.getElementById('dialogue-text');
+        const nextBtn = document.getElementById('next-btn');
+        const choicesContainer = document.getElementById('choices-container');
+        const choiceButtons = [
+            document.getElementById('choice1'),
+            document.getElementById('choice2'),
+            document.getElementById('choice3')
+        ];
+
+        // --- GAME STATE ---
+        let currentPage = 0;
+        let images = {}; // Will hold all loaded image objects
+        let loadedImagesCount = 0;
+        let gameStarted = false;
+
+        // --- IMAGE DEFINITIONS (FIXED) ---
+        const imageSources = {
+            classroom: 'images/classroom.png',
+            highGround: 'images/rooftop.png',
+        };
+
+        // --- STORY DEFINITION ---
+        const story = [
+            // Page 0-3: Intro
+            { bg: 'classroom', speaker: 'Aryan', dialogue: "Wow, look at it rain! I've never seen it come down this hard." },
+            { bg: 'classroom', speaker: 'Khushi', dialogue: "I know. The school field is starting to look like a lake." },
+            { bg: 'classroom', speaker: 'Intercom', dialogue: "*BZZT* Attention students and staff. A flash flood warning has been issued for our area." },
+            { bg: 'classroom', speaker: 'Teacher', dialogue: "Alright class, stay calm. We have a plan for this. We need to act quickly and safely." },
+            // Page 4: Question 1
+            { bg: 'classroom', speaker: 'Khushi', dialogue: "What's the first thing we should do?", choices: [{ text: "Listen to the teacher's instructions.", target: 5 }, { text: "Run outside to see the flood.", target: 12 }, { text: "Grab our bags and leave the school.", target: 15 }] },
+            // Page 5-7: Correct Path 1
+            { bg: 'classroom', speaker: 'Teacher', dialogue: "Exactly. Everyone, listen carefully. We are evacuating to the third floor, which is our designated high ground." },
+            { bg: 'classroom', speaker: 'Teacher', dialogue: "Do not try to leave the building. The water outside is rising fast and can be very dangerous." },
+            { bg: 'classroom', speaker: 'Aryan', dialogue: "Okay, we're ready. We know the evacuation route from the drills." },
+            // Page 8: Question 2
+            { bg: 'classroom', speaker: 'Teacher', dialogue: "Good. As we leave, what is the most important rule to follow?", choices: [{ text: "Stay together and walk calmly.", target: 11 }, { text: "Run to get there as fast as possible.", target: 9 }, { text: "Stop to grab our backpacks first.", target: 10 }] },
+            // Page 9-10: Wrong Paths for Q2
+            { bg: 'classroom', speaker: 'Safety Tip', dialogue: "Running creates panic and can cause accidents like tripping and falling. It's safer to move calmly.", choices: [{ text: "Try again", target: 8 }] },
+            { bg: 'classroom', speaker: 'Safety Tip', dialogue: "Your safety is more important than your belongings. Leave everything behind and evacuate immediately.", choices: [{ text: "Try again", target: 8 }] },
+            // Page 11: Correct Path 2
+            { bg: 'classroom', speaker: 'Narrator', dialogue: "The class calmly and quickly follows the teacher up the stairs, away from the rising water.", nextTarget: 18 },
+            // Page 12-17: Wrong Paths for Q1
+            { bg: 'classroom', speaker: 'Narrator', dialogue: "Running outside is extremely dangerous. Just a few inches of moving water can knock you off your feet." },
+            { bg: 'classroom', speaker: 'Narrator', dialogue: "The water could also hide dangers like open manholes or debris. Never walk or drive through floodwaters." },
+            { bg: 'classroom', speaker: 'Safety Tip', dialogue: "That was very unsafe. The best immediate action is to follow instructions. Let's try again.", choices: [{ text: "Try again", target: 4 }] },
+            { bg: 'classroom', speaker: 'Narrator', dialogue: "Leaving the building on your own is a bad idea. The safest place is to stay inside and get to high ground." },
+            { bg: 'classroom', speaker: 'Narrator', dialogue: "Roads may be flooded and official rescue teams will be looking for people at designated shelters, like your school." },
+            { bg: 'classroom', speaker: 'Safety Tip', dialogue: "It's always safer to stay put and listen to authorities. Let's rethink that decision.", choices: [{ text: "Try again", target: 4 }] },
+            // Page 18: Arriving at high ground
+            { bg: 'highGround', speaker: 'Khushi', dialogue: "Wow, we're safe up here. You can see the water covering the entire first floor from here." },
+            // Page 19: Question 3
+            { bg: 'highGround', speaker: 'Aryan', dialogue: "Good thing we moved to high ground. Now that we are waiting for help, what's a major hidden danger we need to be aware of?", choices: [{ text: "Floodwater can be contaminated.", target: 20 }, { text: "It might damage our school books.", target: 27 }, { text: "The power might go out.", target: 30 }] },
+            // Page 20-21: Correct Path for Q3
+            { bg: 'highGround', speaker: 'Khushi', dialogue: "That's right! Floodwater can be contaminated with sewage and chemicals, which can make you very sick." },
+            { bg: 'highGround', speaker: 'Teacher', dialogue: "Excellent, Khushi. It can also hide dangerous electrical currents from downed power lines. Always avoid contact with it." },
+            { bg: 'highGround', speaker: 'Teacher', dialogue: "You've all done very well to get here safely. I've already contacted emergency services." },
+            // Page 23: Question 4
+            { bg: 'highGround', speaker: 'Khushi', dialogue: "My parents must be so worried. What is the best way to contact them without causing problems?", choices: [{ text: "Send a text message.", target: 24 }, { text: "Keep calling them until they answer.", target: 25 }, { text: "Post a video on social media.", target: 26 }] },
+            // Page 24: Correct Path for Q4
+            { bg: 'highGround', speaker: 'Aryan', dialogue: "Good idea. Sending a text uses less network bandwidth than a call, which helps keep lines open for emergency responders.", nextTarget: 33 },
+            // Page 25-26: Wrong Paths for Q4
+            { bg: 'highGround', speaker: 'Safety Tip', dialogue: "Voice calls can jam the network, preventing emergency calls from getting through. Texting is always better in a disaster.", choices: [{ text: "Try again", target: 23 }] },
+            { bg: 'highGround', speaker: 'Safety Tip', dialogue: "While this can work, it also uses a lot of bandwidth. A simple, direct text to family is the most efficient way.", choices: [{ text: "Try again", target: 23 }] },
+            // Page 27-32: Wrong Paths for Q3
+            { bg: 'highGround', speaker: 'Narrator', dialogue: "While losing your books would be sad, it's not a direct danger to your life." },
+            { bg: 'highGround', speaker: 'Narrator', dialogue: "Your personal safety is always the number one priority in an emergency. Belongings can be replaced." },
+            { bg: 'highGround', speaker: 'Safety Tip', dialogue: "Let's think about what could actually harm you while you wait for rescue.", choices: [{ text: "Try again", target: 19 }] },
+            { bg: 'highGround', speaker: 'Narrator', dialogue: "The power going out is a possibility, but it isn't the most direct danger from the water itself." },
+            { bg: 'highGround', speaker: 'Narrator', dialogue: "The immediate threat comes from what the floodwater contains and what it might be touching, like power lines." },
+            { bg: 'highGround', speaker: 'Safety Tip', dialogue: "Think about the water itself. What makes it so dangerous to touch?", choices: [{ text: "Try again", target: 19 }] },
+            // Page 33: New Event
+            { bg: 'highGround', speaker: 'Sound', dialogue: "*CRASH!* A loud noise echoes from the floor below." },
+            // Page 34: Question 5
+            { bg: 'highGround', speaker: 'Aryan', dialogue: "What was that? It sounded like a window breaking. Should we do something?", choices: [{ text: "Stay put. The teacher said to wait.", target: 35 }, { text: "Let's go investigate carefully.", target: 38 }, { text: "Shout to see if someone is there.", target: 41 }] },
+            // Page 35-37: New Correct Path
+            { bg: 'highGround', speaker: 'Teacher', dialogue: "Good choice. We must stay here. We don't know what caused that noise, and the lower floors are not safe." },
+            { bg: 'highGround', speaker: 'Narrator', dialogue: "An hour later, the sound of a rescue boat approaches. The class is safely evacuated." },
+            { bg: 'highGround', speaker: 'Congratulations!', dialogue: "You made all the right choices! Staying put and avoiding unknown dangers is key to flood safety.", type: 'end' },
+            // Page 38-40: New Wrong Path
+            { bg: 'highGround', speaker: 'Narrator', dialogue: "Moving towards an unknown danger is a bad idea. The structure could be unstable from the water pressure." },
+            { bg: 'highGround', speaker: 'Narrator', dialogue: "It's always best to wait for trained rescuers who have the right equipment to handle these situations." },
+            { bg: 'highGround', speaker: 'Safety Tip', dialogue: "Leaving a safe area introduces new risks. Let's rethink our plan.", choices: [{ text: "Try again", target: 34 }] },
+            // Page 41-43: New "Middle" Wrong Path
+            { bg: 'highGround', speaker: 'Narrator', dialogue: "Shouting is better than moving, but it can be risky if it alerts someone with bad intentions or if you can't hear a response over the storm." },
+            { bg: 'highGround', speaker: 'Narrator', dialogue: "Your teacher has already alerted emergency services. The best course of action is to trust the plan and wait." },
+            { bg: 'highGround', speaker: 'Safety Tip', dialogue: "While well-intentioned, the safest plan is to stay quiet and wait. Let's reconsider.", choices: [{ text: "Try again", target: 34 }] },
+        ];
+
+
+        // --- IMAGE LOADING ---
+        function preloadImages(callback) {
+            const sources = Object.keys(imageSources);
+            if (sources.length === 0) { // Handle case with no images
+                callback();
+                return;
+            }
+            sources.forEach(name => {
+                images[name] = new Image();
+                images[name].onload = () => { 
+                    loadedImagesCount++;
+                    if (loadedImagesCount === sources.length) {
+                        callback(); // Fire the callback when all images are loaded
+                    }
+                };
+                images[name].src = imageSources[name];
+            });
+        }
+
+        // --- CORE GAME FUNCTIONS ---
+        function drawPage() {
+            const page = story[currentPage];
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            if (images[page.bg]) ctx.drawImage(images[page.bg], 0, 0, canvas.width, canvas.height);
+        }
+
+        function updateUI() {
+            const page = story[currentPage];
+
+            if (page.type === 'end') {
+                showEndScreen();
+                return;
+            }
+
+            dialogueBox.style.display = 'block';
+            speakerName.textContent = page.speaker;
+            dialogueText.textContent = page.dialogue;
+
+            if (page.choices) {
+                choicesContainer.style.display = 'flex';
+                nextBtn.style.display = 'none';
+                choiceButtons.forEach((button, index) => {
+                    if (page.choices[index]) {
+                        button.style.display = 'block';
+                        button.textContent = page.choices[index].text;
+                        button.onclick = () => { currentPage = page.choices[index].target; renderScene(); };
+                    } else {
+                        button.style.display = 'none';
+                    }
+                });
+            } else {
+                choicesContainer.style.display = 'none';
+                nextBtn.style.display = (currentPage >= story.length - 1) ? 'none' : 'block';
+            }
+        }
+        
+        function renderScene() {
+            if (currentPage >= story.length) currentPage = story.length - 1;
+            drawPage();
+            updateUI();
+        }
+        
+        function showEndScreen() {
+            gameContainer.style.display = 'none';
+            endScreen.style.display = 'flex';
+        }
+
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', () => {
+            startBtn.textContent = 'Loading...';
+            startBtn.disabled = true; // Prevent multiple clicks
+            if (!gameStarted) {
+                preloadImages(() => {
+                    gameStarted = true;
+                    startScreen.style.display = 'none';
+                    gameContainer.style.display = 'block';
+                    renderScene();
+                });
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const page = story[currentPage];
+            if (page.nextTarget !== undefined) {
+                currentPage = page.nextTarget;
+            } else if (currentPage < story.length - 1) {
+                currentPage++;
+            }
+            renderScene();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            endScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
+            currentPage = 0;
+            renderScene();
+        });
+
+        // REMOVED: Old exit button listener
+
+    </script>
+</body>
+</html>

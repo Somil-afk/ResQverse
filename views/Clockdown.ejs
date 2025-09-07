@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lockdown Safety Adventure</title>
+    <style>
+        /* General page styling */
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #333;
+            color: #333;
+        }
+
+        /* The main container for the game canvas and UI */
+        #game-container {
+            width: 800px;
+            height: 600px;
+            border: 5px solid #000;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background-color: #fff;
+            display: none; /* Hidden by default, shown after start */
+        }
+
+        /* Start and End Screen Styling */
+        #start-screen, #end-screen {
+            width: 800px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: #e3f2fd;
+            border: 5px solid #000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-title {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            color: #1565c0;
+        }
+        
+        .game-subtitle {
+            font-size: 1.5em;
+            margin-bottom: 40px;
+        }
+
+        .action-btn {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #4db6ac;
+            color: white;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .action-btn:hover {
+            background-color: #26a69a;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        #end-screen .action-btn {
+            background-color: #5cb85c;
+        }
+        #end-screen .action-btn:hover {
+             background-color: #4cae4c;
+        }
+
+
+        /* The canvas where the comic panels are drawn */
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Dialogue box styling */
+        #dialogue-box {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 4px solid #000;
+            border-radius: 15px;
+            padding: 15px 20px;
+            z-index: 3;
+            font-size: 1.3em;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        
+        #speaker-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #1565c0;
+        }
+
+        #dialogue-text {
+            margin: 0;
+        }
+
+        /* Next button styling */
+        #next-btn {
+            position: absolute;
+            bottom: 25px;
+            right: 30px;
+            padding: 10px 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #4db6ac;
+            color: white;
+            border-radius: 10px;
+            z-index: 4;
+            box-shadow: 3px 3px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #next-btn:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* Container for multiple choice questions */
+        #choices-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 15px;
+            width: 80%;
+            max-width: 450px;
+        }
+
+        .choice-btn {
+            padding: 15px;
+            font-size: 1.1em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            background-color: #1565c0;
+            color: white;
+            border: 3px solid #000;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+        
+        .choice-btn:hover {
+            background-color: #4db6ac;
+            color: #fff;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* ADDED: Styles for the new persistent exit button */
+        #persistent-exit-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: #e53e3e; /* Red color */
+            color: white;
+            border: 3px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-size: 28px;
+            line-height: 1;
+            font-weight: bold;
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        #persistent-exit-button:hover {
+            background-color: #c53030;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+    </style>
+</head>
+<body>
+    <a href="/dashboard" id="persistent-exit-button">&times;</a>
+
+    <div id="start-screen">
+        <h1 class="game-title">Lockdown Safety Adventure</h1>
+        <p class="game-subtitle">A story about staying healthy and safe at home.</p>
+        <button id="start-btn" class="action-btn">Start Adventure</button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+
+        <div id="dialogue-box">
+            <p id="speaker-name">Aarav</p>
+            <p id="dialogue-text">Loading...</p>
+        </div>
+        
+        <div id="choices-container">
+            <button class="choice-btn" id="choice1"></button>
+            <button class="choice-btn" id="choice2"></button>
+            <button class="choice-btn" id="choice3"></button>
+        </div>
+
+        <button id="next-btn">Next ▶</button>
+    </div>
+    
+    <div id="end-screen" style="display: none;">
+        <h1 class="game-title">You're a Lockdown Champion!</h1>
+        <p class="game-subtitle">You stayed safe, healthy, and responsible. What would you like to do next?</p>
+        <div>
+            <button id="restart-btn" class="action-btn">Play Again</button>
+            </div>
+    </div>
+
+    <script>
+        // --- DOM ELEMENT REFERENCES ---
+        const startScreen = document.getElementById('start-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        // REMOVED: const exitBtn = document.getElementById('exit-btn');
+        const gameContainer = document.getElementById('game-container');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const dialogueBox = document.getElementById('dialogue-box');
+        const speakerName = document.getElementById('speaker-name');
+        const dialogueText = document.getElementById('dialogue-text');
+        const nextBtn = document.getElementById('next-btn');
+        const choicesContainer = document.getElementById('choices-container');
+        const choiceButtons = [
+            document.getElementById('choice1'),
+            document.getElementById('choice2'),
+            document.getElementById('choice3')
+        ];
+
+        // --- GAME STATE ---
+        let currentPage = 0;
+        let images = {}; // Will hold all loaded image objects
+        let loadedImagesCount = 0;
+        let gameStarted = false;
+
+        // --- IMAGE DEFINITIONS (FIXED) ---
+        const imageSources = {
+            livingRoom: 'images/livingroomz.png',
+            balcony: 'images/windowz.png',
+        };
+
+        // --- STORY DEFINITION ---
+        const story = [
+            // Page 0-2: Intro
+            { bg: 'livingRoom', speaker: 'Aarav', dialogue: "I'm so bored! There's nothing to do." },
+            { bg: 'livingRoom', speaker: 'Diya', dialogue: "Let's watch a movie! Oh wait, Mom's putting on the news." },
+            { bg: 'livingRoom', speaker: 'News Anchor', dialogue: "Breaking News from Jabalpur: due to a public health emergency, a city-wide lockdown will begin at midnight." },
+            // Page 3: Question 1
+            { bg: 'livingRoom', speaker: 'Aarav', dialogue: "A lockdown! What does that mean we should do right now?", choices: [{ text: "Stay calm and listen for more details.", target: 4 }, { text: "Rush to the shops to buy snacks.", target: 10 }, { text: "Call our friends to make plans.", target: 13 }] },
+            // Page 4: Correct Path 1
+            { bg: 'livingRoom', speaker: 'Diya', dialogue: "You're right. Panicking won't help. Let's listen to the official instructions so we know the rules." },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "They listen carefully and learn that they must stay home to keep everyone safe." },
+            // Page 6: Question 2
+            { bg: 'livingRoom', speaker: 'Aarav', dialogue: "Okay, so we're going to be home for a while. How can we stay healthy and not get bored?", choices: [{ text: "Create a routine with study, exercise, and hobbies.", target: 7 }, { text: "Watch TV and eat chips all day.", target: 16 }, { text: "Sleep as much as possible.", target: 19 }] },
+            // Page 7: Correct Path 2
+            { bg: 'livingRoom', speaker: 'Diya', dialogue: "Great idea! We can do yoga in the morning, help with chores, do our online classes, and I can finally learn to paint!" },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "By creating a routine, they keep their minds and bodies active and healthy." },
+            // Page 9: Question 3
+            { bg: 'livingRoom', speaker: 'Aarav', dialogue: "Oh, my friend Rohan is calling. He wants me to sneak out to the park to play cricket. What should I say?", choices: [{ text: "Politely say no and explain it's not safe.", target: 22 }, { text: "Agree and sneak out when Mom isn't looking.", target: 25 }, { text: "Invite him over to our house instead.", target: 28 }] },
+            // Page 10-15: Wrong Paths for Q1
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "Rushing to the shops is called panic buying. It creates crowds, which is dangerous, and means some people might not get what they need." },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "It's better to stay home and plan with what you already have." },
+            { bg: 'livingRoom', speaker: 'Safety Tip', dialogue: "Panic creates more problems. What is a better reaction?", choices: [{ text: "Try again", target: 3 }] },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "During a lockdown, you cannot meet your friends. The whole point is to stay home to stop the spread of germs." },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "Making plans to go out would be breaking the rules and putting people at risk." },
+            { bg: 'livingRoom', speaker: 'Safety Tip', dialogue: "The rules are there to protect everyone. What is the responsible thing to do?", choices: [{ text: "Try again", target: 3 }] },
+            // Page 16-21: Wrong Paths for Q2
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "While relaxing is okay, spending all day on the couch with junk food will make you feel sluggish and unhealthy." },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "It's important to move your body and eat nutritious food to keep your immune system strong." },
+            { bg: 'livingRoom', speaker: 'Safety Tip', dialogue: "How can you take care of your body and mind while at home?", choices: [{ text: "Try again", target: 6 }] },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "Sleeping too much can disrupt your body's natural clock and can actually make you feel more tired." },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "Maintaining a regular sleep schedule is much healthier for your body and mind." },
+            { bg: 'livingRoom', speaker: 'Safety Tip', dialogue: "A balanced day is a healthy day. What's the best way to structure your time?", choices: [{ text: "Try again", target: 6 }] },
+            // Page 22: Correct Path 3
+            { bg: 'livingRoom', speaker: 'Aarav', dialogue: "I'll tell him, 'Sorry Rohan, we have to stay home to protect our families. We can play online later!'" },
+            // Page 23: New Event
+            { bg: 'balcony', speaker: 'Narrator', dialogue: "Weeks pass. Sometimes, it's hard to stay positive." },
+            // Page 24: Question 4
+            { bg: 'balcony', speaker: 'Diya', dialogue: "I miss my friends and going to school. I'm feeling a little sad today. What's a good way to handle these feelings?", choices: [{ text: "Talk about it with family or friends online.", target: 31 }, { text: "Keep it to myself and pretend I'm fine.", target: 34 }, { text: "Demand to go outside because it's not fair.", target: 37 }] },
+            // Page 25-30: Wrong Paths for Q3
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "Sneaking out is a terrible idea. You would be breaking the rules and putting yourself and your family at risk of getting sick." },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "It's important to be a responsible citizen and help the community by staying home." },
+            { bg: 'livingRoom', speaker: 'Safety Tip', dialogue: "What is the responsible and safe choice to make?", choices: [{ text: "Try again", target: 9 }] },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "Inviting friends over is also against the rules. The lockdown means no visitors from other households." },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "This rule helps stop germs from spreading between different families." },
+            { bg: 'livingRoom', speaker: 'Safety Tip', dialogue: "How can you follow the rules and keep everyone safe?", choices: [{ text: "Try again", target: 9 }] },
+            // Page 31: Correct Path 4
+            { bg: 'balcony', speaker: 'Aarav', dialogue: "I understand. It's okay to feel sad. Let's call Grandma on video, that always makes us feel better." },
+            // Page 32: New Event
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "The government has announced a short window for people to buy essential groceries." },
+            // Page 33: Question 5
+            { bg: 'livingRoom', speaker: 'Diya', dialogue: "We need some dal and rice. What's the safest way to go to the market?", choices: [{ text: "One person goes with a list, a mask, and sanitiser.", target: 40 }, { text: "The whole family goes for an outing.", target: 43 }, { text: "Rush to the market before it gets crowded.", target: 46 }] },
+            // Page 34-39: Wrong Paths for Q4
+            { bg: 'balcony', speaker: 'Narrator', dialogue: "Hiding your feelings can make you feel even worse. It's healthy and important to share what you're feeling with people you trust." },
+            { bg: 'balcony', speaker: 'Narrator', dialogue: "Your family is there to support you, and chances are they feel the same way sometimes." },
+            { bg: 'balcony', speaker: 'Safety Tip', dialogue: "What is a healthy way to process your emotions?", choices: [{ text: "Try again", target: 24 }] },
+            { bg: 'balcony', speaker: 'Narrator', dialogue: "Getting angry won't change the situation. The lockdown is for everyone's safety." },
+            { bg: 'balcony', speaker: 'Narrator', dialogue: "It's better to find positive ways to cope with the situation rather than demanding to break the rules." },
+            { bg: 'balcony', speaker: 'Safety Tip', dialogue: "How can you cope with frustration in a positive way?", choices: [{ text: "Try again", target: 24 }] },
+            // Page 40: Correct Path 5
+            { bg: 'livingRoom', speaker: 'Aarav', dialogue: "Good plan. Dad will go since he's the oldest. We'll give him a list so he can be quick, and he must wear his mask." },
+            // Page 41: Conclusion
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "Finally, after many weeks, the news announces that the lockdown is over because everyone worked together to stop the spread." },
+            { bg: 'balcony', speaker: 'Congratulations!', dialogue: "You made responsible, healthy, and safe choices during the lockdown. You're a community hero!", type: 'end' },
+            // Page 43-48: Wrong Paths for Q5
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "Taking the whole family increases the risk of exposure and adds to the crowd, making it less safe for everyone." },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "The rule is to minimize contact, so only one person should go for essential shopping." },
+            { bg: 'livingRoom', speaker: 'Safety Tip', dialogue: "How can you get groceries while keeping your family's risk as low as possible?", choices: [{ text: "Try again", target: 33 }] },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "Rushing to the market is what creates crowds. It's better to go during a less busy time if possible." },
+            { bg: 'livingRoom', speaker: 'Narrator', dialogue: "The key is to be prepared with a list, maintain distance from others, and be as quick and efficient as possible." },
+            { bg: 'livingRoom', speaker: 'Safety Tip', dialogue: "What is a calm and organized way to approach shopping?", choices: [{ text: "Try again", target: 33 }] },
+        ];
+
+
+        // --- IMAGE LOADING ---
+        function preloadImages(callback) {
+            const sources = Object.keys(imageSources);
+            if (sources.length === 0) { // Handle case with no images
+                callback();
+                return;
+            }
+            sources.forEach(name => {
+                images[name] = new Image();
+                images[name].onload = () => { 
+                    loadedImagesCount++;
+                    if (loadedImagesCount === sources.length) {
+                        callback(); // Fire the callback when all images are loaded
+                    }
+                };
+                images[name].src = imageSources[name];
+            });
+        }
+
+        // --- CORE GAME FUNCTIONS ---
+        function drawPage() {
+            const page = story[currentPage];
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            if (images[page.bg]) ctx.drawImage(images[page.bg], 0, 0, canvas.width, canvas.height);
+        }
+
+        function updateUI() {
+            const page = story[currentPage];
+
+            if (page.type === 'end') {
+                showEndScreen();
+                return;
+            }
+
+            dialogueBox.style.display = 'block';
+            speakerName.textContent = page.speaker;
+            dialogueText.textContent = page.dialogue;
+
+            if (page.choices) {
+                choicesContainer.style.display = 'flex';
+                nextBtn.style.display = 'none';
+                choiceButtons.forEach((button, index) => {
+                    if (page.choices[index]) {
+                        button.style.display = 'block';
+                        button.textContent = page.choices[index].text;
+                        button.onclick = () => { currentPage = page.choices[index].target; renderScene(); };
+                    } else {
+                        button.style.display = 'none';
+                    }
+                });
+            } else {
+                choicesContainer.style.display = 'none';
+                nextBtn.style.display = (currentPage >= story.length - 1) ? 'none' : 'block';
+            }
+        }
+        
+        function renderScene() {
+            if (currentPage >= story.length) currentPage = story.length - 1;
+            drawPage();
+            updateUI();
+        }
+        
+        function showEndScreen() {
+            gameContainer.style.display = 'none';
+            endScreen.style.display = 'flex';
+        }
+
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', () => {
+            startBtn.textContent = 'Loading...';
+            startBtn.disabled = true;
+            if (!gameStarted) {
+                preloadImages(() => {
+                    gameStarted = true;
+                    startScreen.style.display = 'none';
+                    gameContainer.style.display = 'block';
+                    renderScene();
+                });
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const page = story[currentPage];
+            if (page.nextTarget !== undefined) {
+                currentPage = page.nextTarget;
+            } else if (currentPage < story.length - 1) {
+                currentPage++;
+            }
+            renderScene();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            endScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
+            currentPage = 0;
+            renderScene();
+        });
+
+        // REMOVED: Old exit button listener
+
+    </script>
+</body>
+</html>

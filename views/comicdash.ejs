@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Selection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden;
+            overscroll-behavior-y: none;
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e;
+        }
+        canvas {
+            display: block;
+            background-color: #1a1a2e;
+            cursor: grab;
+        }
+        .instruction {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 12px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white m-0 p-0">
+    <canvas id="gameCanvas"></canvas>
+    <div class="instruction">Scroll with mouse wheel or drag to view more games</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let cards = [];
+        let images = [];
+        let imagesLoaded = 0;
+        let hoveredCardIndex = -1;
+        
+        let backButton = { x: 0, y: 0, width: 0, height: 0 };
+        let isHoveringBackButton = false;
+
+        // --- State for Scrolling Carousel (Now Vertical) ---
+        let scrollY = 0;
+        let maxScrollY = 0;
+        let isDragging = false;
+        let startY_drag = 0;
+        let scrollStartY = 0;
+        let velocityY = 0;
+        let hasMoved = false;
+        let lastMoveY = 0;
+        let lastMoveX = 0;
+
+        // Game data
+        const gameData = [
+            { title: "Aftershock Safety Adventure", imgSrc: "images/outsidea.png", url: "/Caftershock" },
+            { title: "Chemical Spill Safety Adventure", imgSrc: "images/outsidec.png", url: "/Cchemical" },
+            { title: "Cyclone Safety Adventure", imgSrc: "images/sheltery.png", url: "/Ccyclone" },
+            { title: "Earthquake Safety Adventure", imgSrc: "images/insidee.png", url: "/Cearthquake" },
+            { title: "Fire Drill Adventure", imgSrc: "images/livingroomf.png", url: "/Cfire" },
+            { title: "Flood Safety Adventure", imgSrc: "images/classroom.png", url: "/Cflood" },
+            { title: "Lockdown Safety Adventure", imgSrc: "images/livingroomz.png", url: "/Clockdown" },
+            
+        ];
+
+        // --- Image Preloading ---
+        function preloadImages() {
+            for (let i = 0; i < gameData.length; i++) {
+                images[i] = new Image();
+                images[i].onload = () => {
+                    imagesLoaded++;
+                    if (imagesLoaded === gameData.length) {
+                        init();
+                    }
+                };
+                images[i].onerror = () => {
+                    imagesLoaded++;
+                    if (imagesLoaded === gameData.length) {
+                        init();
+                    }
+                }
+                images[i].src = gameData[i].imgSrc;
+            }
+        }
+
+        // --- Canvas Sizing and Layout ---
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            calculateLayout();
+
+            const buttonPadding = 20;
+            const buttonWidth = 150;
+            const buttonHeight = 50;
+            backButton = {
+                width: buttonWidth,
+                height: buttonHeight,
+                x: canvas.width - buttonWidth - buttonPadding,
+                y: canvas.height - buttonHeight - buttonPadding,
+            };
+        }
+
+        function calculateLayout() {
+            const cardAspectRatio = 4 / 3;
+            const gap = 50;
+            const titleAreaHeight = 120;
+            
+            const cardsPerRow = canvas.width < 1024 ? (canvas.width < 640 ? 1 : 2) : 3;
+
+            const totalGapWidth = (cardsPerRow - 1) * gap;
+            const availableWidth = canvas.width - 2 * gap;
+            const cardWidth = (availableWidth - totalGapWidth) / cardsPerRow;
+            const cardHeight = cardWidth / cardAspectRatio;
+
+            const gridWidth = cardsPerRow * cardWidth + totalGapWidth;
+            const startX = (canvas.width - gridWidth) / 2;
+
+            cards = gameData.map((data, i) => {
+                let col = i % cardsPerRow;
+                const row = Math.floor(i / cardsPerRow);
+
+                if (cardsPerRow === 3 && i === gameData.length - 1 && (gameData.length % 3 === 1)) {
+                    col = 1;
+                }
+
+                return {
+                    x: startX + col * (cardWidth + gap),
+                    y: titleAreaHeight + row * (cardHeight + gap),
+                    width: cardWidth,
+                    height: cardHeight,
+                    title: data.title
+                };
+            });
+            
+            const lastCard = cards[cards.length - 1];
+            if (lastCard) {
+                const totalHeight = lastCard.y + lastCard.height + gap;
+                maxScrollY = Math.max(0, totalHeight - canvas.height);
+            } else {
+                maxScrollY = 0;
+            }
+        }
+
+        // --- Drawing Functions ---
+        function drawRoundedRect(x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let lines = [];
+
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = context.measureText(testLine);
+                if (metrics.width > maxWidth && n > 0) {
+                    lines.push(line);
+                    line = words[n] + ' ';
+                } else {
+                    line = testLine;
+                }
+            }
+            lines.push(line);
+            
+            const startY = y - (lines.length - 1) * lineHeight / 2;
+
+            lines.forEach((l, i) => {
+                 context.fillText(l.trim(), x, startY + i * lineHeight);
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw title
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${Math.min(48, canvas.width / 15)}px Poppins`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Select Your Adventure', canvas.width / 2, 60);
+
+            ctx.save();
+            ctx.translate(0, -scrollY);
+
+            cards.forEach((card, index) => {
+                ctx.save();
+                
+                ctx.fillStyle = '#2c2c54';
+                drawRoundedRect(card.x, card.y, card.width, card.height, 15);
+                ctx.fill();
+
+                if (index === hoveredCardIndex) {
+                    ctx.shadowColor = '#f1c40f';
+                    ctx.shadowBlur = 30;
+                    ctx.strokeStyle = '#f1c40f';
+                    ctx.lineWidth = 4;
+                    drawRoundedRect(card.x, card.y, card.width, card.height, 15);
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+
+                const img = images[index];
+                if (img.complete && img.naturalHeight !== 0) {
+                    const imgPadding = 15;
+                    const textZoneHeight = Math.max(70, card.height * 0.25);
+                    const availableHeight = card.height - (imgPadding * 2) - textZoneHeight;
+                    const availableWidth = card.width - (imgPadding * 2);
+                    const imgAspectRatio = img.naturalWidth / img.naturalHeight;
+                    let renderWidth = availableWidth;
+                    let renderHeight = renderWidth / imgAspectRatio;
+                    if (renderHeight > availableHeight) {
+                        renderHeight = availableHeight;
+                        renderWidth = renderHeight * imgAspectRatio;
+                    }
+                    const imgX = card.x + (card.width - renderWidth) / 2;
+                    const imgY = card.y + imgPadding;
+                    ctx.drawImage(img, imgX, imgY, renderWidth, renderHeight);
+                }
+                
+                // Draw Play Button
+                const buttonHeight = Math.max(40, card.height * 0.12);
+                const buttonWidth = card.width * 0.6;
+                const buttonX = card.x + (card.width - buttonWidth) / 2;
+                const buttonY = card.y + card.height - (card.height * 0.25) - 5;
+                
+                ctx.fillStyle = index === hoveredCardIndex ? '#f39c12' : '#e67e22';
+                drawRoundedRect(buttonX, buttonY, buttonWidth, buttonHeight, 10);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${buttonHeight * 0.45}px Poppins`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Play', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+
+                // Draw Title Text
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `600 ${card.width / 24}px Poppins`;
+                ctx.textAlign = 'center';
+                const lineHeight = card.width / 22;
+                wrapText(ctx, card.title, card.x + card.width / 2, card.y + card.height - (card.height * 0.06), card.width - 30, lineHeight);
+                
+                ctx.restore();
+            });
+            ctx.restore();
+
+            // Draw scroll indicator if content is scrollable
+            if (maxScrollY > 0) {
+                const indicatorHeight = Math.max(30, canvas.height * 0.7 * (canvas.height / (maxScrollY + canvas.height)));
+                const indicatorPos = (scrollY / maxScrollY) * (canvas.height - indicatorHeight - 20);
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                drawRoundedRect(canvas.width - 10, 10 + indicatorPos, 6, indicatorHeight, 3);
+                ctx.fill();
+            }
+
+            // Draw Go Back Button
+            ctx.fillStyle = isHoveringBackButton ? '#007bff' : '#0056b3';
+            drawRoundedRect(backButton.x, backButton.y, backButton.width, backButton.height, 10);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold 18px Poppins`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Go Back', backButton.x + backButton.width / 2, backButton.y + backButton.height / 2);
+        }
+        
+        // --- Animation Loop ---
+        function animate() {
+            if (!isDragging && Math.abs(velocityY) > 0.1) {
+                scrollY += velocityY;
+                velocityY *= 0.95;
+            } else if (!isDragging) {
+                velocityY = 0;
+            }
+
+            if (scrollY < 0) { scrollY = 0; velocityY = 0; }
+            if (scrollY > maxScrollY) { scrollY = maxScrollY; velocityY = 0; }
+            
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        // --- Event Handlers ---
+        function getPos(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function handleDown(clientY) {
+            isDragging = true;
+            startY_drag = clientY;
+            scrollStartY = scrollY;
+            hasMoved = false;
+            velocityY = 0;
+            lastMoveY = clientY;
+            canvas.style.cursor = 'grabbing';
+        }
+
+        function handleMove(clientX, clientY) {
+            if (isDragging) {
+                const dy = clientY - startY_drag;
+                if (Math.abs(dy) > 5) hasMoved = true;
+                scrollY = scrollStartY - dy;
+                velocityY = clientY - lastMoveY;
+                lastMoveY = clientY;
+            }
+             lastMoveX = clientX;
+
+            const pos = getPos(clientX, clientY);
+            let onCard = false;
+            isHoveringBackButton = false;
+            hoveredCardIndex = -1;
+            
+            if (pos.x >= backButton.x && pos.x <= backButton.x + backButton.width &&
+                pos.y >= backButton.y && pos.y <= backButton.y + backButton.height) {
+                isHoveringBackButton = true;
+            } else {
+                 const transformedY = pos.y + scrollY;
+                 cards.forEach((card, index) => {
+                    if (pos.x >= card.x && pos.x <= card.x + card.width &&
+                        transformedY >= card.y && transformedY <= card.y + card.height) {
+                        hoveredCardIndex = index;
+                        onCard = true;
+                    }
+                });
+            }
+
+            if (!isDragging) {
+                canvas.style.cursor = (onCard || isHoveringBackButton) ? 'pointer' : 'grab';
+            }
+        }
+
+        function handleUp(clientX, clientY) {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            if (!hasMoved) {
+                const pos = getPos(clientX, clientY);
+                
+                if (
+  pos.x >= backButton.x &&
+  pos.x <= backButton.x + backButton.width &&
+  pos.y >= backButton.y &&
+  pos.y <= backButton.y + backButton.height
+) {
+  window.location.href = '/dashboard'; // or '/dashboard' if that's your actual route
+  return;
+}
+
+
+                const transformedY = pos.y + scrollY;
+                cards.forEach((card, index) => {
+                     if (pos.x >= card.x && pos.x <= card.x + card.width &&
+                        transformedY >= card.y && transformedY <= card.y + card.height) {
+                         window.location.href = gameData[index].url;
+                    }
+                });
+                velocityY = 0;
+            }
+            handleMove(clientX, clientY);
+        }
+        
+        // Fixed mouse wheel handler (corrected scrolling direction)
+        function handleWheel(e) {
+            e.preventDefault();
+            
+            // Fixed: Changed from subtraction to addition for natural scrolling
+            scrollY += e.deltaY * 0.5;
+            
+            if (scrollY < 0) scrollY = 0;
+            if (scrollY > maxScrollY) scrollY = maxScrollY;
+            
+            velocityY = 0;
+        }
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', e => handleDown(e.clientY));
+        canvas.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', e => handleUp(e.clientX, e.clientY));
+        
+        // Mouse wheel event - fixed scrolling direction
+        canvas.addEventListener('wheel', handleWheel, { passive: false });
+
+        // Touch Events
+        canvas.addEventListener('touchstart', e => {
+            if (e.touches.length > 0) handleDown(e.touches[0].clientY);
+            e.preventDefault();
+        }, { passive: false });
+        canvas.addEventListener('touchmove', e => {
+            if (e.touches.length > 0) handleMove(e.touches[0].clientX, e.touches[0].clientY);
+            e.preventDefault();
+        }, { passive: false });
+        window.addEventListener('touchend', e => {
+            handleUp(lastMoveX, lastMoveY);
+        });
+
+        // --- Initialization ---
+        function init() {
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            requestAnimationFrame(animate);
+        }
+
+        preloadImages();
+    </script>
+</body>
+</html>

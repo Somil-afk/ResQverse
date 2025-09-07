@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyclone Safety Adventure</title>
+    <style>
+        /* General page styling */
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #333;
+            color: #333;
+        }
+
+        /* The main container for the game canvas and UI */
+        #game-container {
+            width: 800px;
+            height: 600px;
+            border: 5px solid #000;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background-color: #fff;
+            display: none; /* Hidden by default, shown after start */
+        }
+
+        /* Start and End Screen Styling */
+        #start-screen, #end-screen {
+            width: 800px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: #e0f7fa;
+            border: 5px solid #000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-title {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            color: #01579b;
+        }
+        
+        .game-subtitle {
+            font-size: 1.5em;
+            margin-bottom: 40px;
+        }
+
+        .action-btn {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #00796b;
+            color: white;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .action-btn:hover {
+            background-color: #004d40;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        #end-screen .action-btn {
+            background-color: #5cb85c;
+        }
+        #end-screen .action-btn:hover {
+             background-color: #4cae4c;
+        }
+
+
+        /* The canvas where the comic panels are drawn */
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Dialogue box styling */
+        #dialogue-box {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 4px solid #000;
+            border-radius: 15px;
+            padding: 15px 20px;
+            z-index: 3;
+            font-size: 1.3em;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        
+        #speaker-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #01579b;
+        }
+
+        #dialogue-text {
+            margin: 0;
+        }
+
+        /* Next button styling */
+        #next-btn {
+            position: absolute;
+            bottom: 25px;
+            right: 30px;
+            padding: 10px 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #00796b;
+            color: white;
+            border-radius: 10px;
+            z-index: 4;
+            box-shadow: 3px 3px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #next-btn:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* Container for multiple choice questions */
+        #choices-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 15px;
+            width: 80%;
+            max-width: 450px;
+        }
+
+        .choice-btn {
+            padding: 15px;
+            font-size: 1.1em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            background-color: #01579b;
+            color: white;
+            border: 3px solid #000;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+        
+        .choice-btn:hover {
+            background-color: #0097a7;
+            color: #fff;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* ADDED: Styles for the new persistent exit button */
+        #persistent-exit-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: #e53e3e; /* Red color */
+            color: white;
+            border: 3px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-size: 28px;
+            line-height: 1;
+            font-weight: bold;
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        #persistent-exit-button:hover {
+            background-color: #c53030;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+    </style>
+</head>
+<body>
+    <a href="/dashboard" id="persistent-exit-button">&times;</a>
+
+    <div id="start-screen">
+        <h1 class="game-title">Cyclone Safety Adventure</h1>
+        <p class="game-subtitle">A story about staying safe in a storm.</p>
+        <button id="start-btn" class="action-btn">Start Adventure</button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+
+        <div id="dialogue-box">
+            <p id="speaker-name">Aryan</p>
+            <p id="dialogue-text">Loading...</p>
+        </div>
+        
+        <div id="choices-container">
+            <button class="choice-btn" id="choice1"></button>
+            <button class="choice-btn" id="choice2"></button>
+            <button class="choice-btn" id="choice3"></button>
+        </div>
+
+        <button id="next-btn">Next ▶</button>
+    </div>
+    
+    <div id="end-screen" style="display: none;">
+        <h1 class="game-title">You Weathered the Storm!</h1>
+        <p class="game-subtitle">You made smart choices and stayed safe. What would you like to do next?</p>
+        <div>
+            <button id="restart-btn" class="action-btn">Play Again</button>
+            </div>
+    </div>
+
+    <script>
+        // --- DOM ELEMENT REFERENCES ---
+        const startScreen = document.getElementById('start-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        // REMOVED: const exitBtn = document.getElementById('exit-btn');
+        const gameContainer = document.getElementById('game-container');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const dialogueBox = document.getElementById('dialogue-box');
+        const speakerName = document.getElementById('speaker-name');
+        const dialogueText = document.getElementById('dialogue-text');
+        const nextBtn = document.getElementById('next-btn');
+        const choicesContainer = document.getElementById('choices-container');
+        const choiceButtons = [
+            document.getElementById('choice1'),
+            document.getElementById('choice2'),
+            document.getElementById('choice3')
+        ];
+
+        // --- GAME STATE ---
+        let currentPage = 0;
+        let images = {}; // Will hold all loaded image objects
+        let loadedImagesCount = 0;
+        let gameStarted = false;
+
+        // --- IMAGE DEFINITIONS ---
+        const imageSources = {
+            houseInside: 'images/sheltery.png',
+            shelter: 'images/windowy.png',
+        };
+
+        // --- STORY DEFINITION ---
+        const story = [
+            // Page 0-2: Intro
+            { bg: 'houseInside', speaker: 'Aryan', dialogue: "The sky is getting really dark, and the wind is picking up." },
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "Dad just called. He said the news is reporting a cyclone warning for our area." },
+            { bg: 'houseInside', speaker: 'Radio', dialogue: "*crackle*... All residents in coastal areas are advised to prepare... *crackle*" },
+            // Page 3: Question 1
+            { bg: 'houseInside', speaker: 'Aryan', dialogue: "A cyclone! What should we do first to prepare the house?", choices: [{ text: "Secure loose items outside and tape windows.", target: 4 }, { text: "Go to the beach to see the big waves.", target: 10 }, { text: "It's probably just a storm, let's ignore it.", target: 13 }] },
+            // Page 4: Correct Path 1
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "You're right. We need to bring in the flower pots and anything that could fly away. I'll get the tape for the windows." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "They work together to secure the outside of the house, making it safer from strong winds." },
+            // Page 6: Question 2
+            { bg: 'houseInside', speaker: 'Aryan', dialogue: "Okay, the house is as secure as we can make it. Now, what should go in our emergency kit?", choices: [{ text: "Torch, first aid, and drinking water.", target: 7 }, { text: "Video games and snacks.", target: 16 }, { text: "We don't need a kit, we're staying home.", target: 19 }] },
+            // Page 7: Correct Path 2
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "Perfect. A torch in case the power goes out, a first-aid kit for any injuries, and clean water are the most important things." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "The wind howls outside. The cyclone has arrived." },
+            // Page 9: Question 3
+            { bg: 'houseInside', speaker: 'Aryan', dialogue: "The storm is getting really loud! Where is the safest place to be inside the house?", choices: [{ text: "An inner room or hallway, away from windows.", target: 22 }, { text: "Near a window so we can see what's happening.", target: 25 }, { text: "In the basement.", target: 28 }] },
+            // Page 10-15: Wrong Paths for Q1
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Going near the sea during a cyclone warning is extremely dangerous. The waves can be huge and unpredictable." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Storm surges can cause sudden, massive flooding on the coast." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "Your safety comes first. Always stay away from the coast during a storm. Let's try again.", choices: [{ text: "Try again", target: 3 }] },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Ignoring a cyclone warning is a huge risk. These storms can be very powerful and cause a lot of damage." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "It's always better to be prepared for the worst, even if the storm turns out to be mild." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "Always take official warnings seriously. What is the correct first step?", choices: [{ text: "Try again", target: 3 }] },
+            // Page 16-21: Wrong Paths for Q2
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "While snacks and games are nice to have, they aren't essential for your survival." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "An emergency kit should focus on essentials for safety and communication if the power goes out." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "Think about what you would need if you had no electricity or running water. Let's try again.", choices: [{ text: "Try again", target: 6 }] },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Even if you're sheltering at home, you need an emergency kit. The power could be out for days." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "You might need a torch, a battery-powered radio for updates, and a first-aid kit. It's always better to be prepared." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "An emergency can happen anywhere, even at home. What are the essentials for your kit?", choices: [{ text: "Try again", target: 6 }] },
+            // Page 22: Correct Path 3
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "Yes, let's go to the central hallway. There are no windows, so we're safe from flying debris." },
+            // Page 23: New Event
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Suddenly, the lights flicker and then go out completely. The house is dark." },
+            // Page 24: Question 4
+            { bg: 'houseInside', speaker: 'Aryan', dialogue: "The power is out! What should we do about the electricity to be safe?", choices: [{ text: "Turn off the main switch (mains).", target: 31 }, { text: "Try to turn the lights back on.", target: 34 }, { text: "Don't worry about it, the power will come back.", target: 37 }] },
+            // Page 25-30: Wrong Paths for Q3
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Staying near windows is very dangerous. The strong winds can shatter the glass and send it flying." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "The safest place is always in the most central part of the house, away from all windows and outer walls." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "Protect yourself from broken glass and debris. Where can you go?", choices: [{ text: "Try again", target: 9 }] },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Basements are very dangerous during cyclones, especially in coastal areas. They can flood very quickly." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "You should always try to be on higher ground. The rule is 'run from water, hide from wind'." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "Where can you go to be safe from both wind and potential flooding?", choices: [{ text: "Try again", target: 9 }] },
+            // Page 31: Correct Path 4
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "Good idea. Turning off the mains prevents a power surge when the electricity comes back, which could damage appliances or cause a fire." },
+            // Page 32: New Event
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "After a few hours, the howling wind and pounding rain suddenly stop. It's strangely calm outside." },
+            // Page 33: Question 5
+            { bg: 'houseInside', speaker: 'Aryan', dialogue: "It stopped! It's so quiet now. What does this mean?", choices: [{ text: "It's the eye of the storm. Stay inside!", target: 40 }, { text: "The cyclone is over, we can go outside.", target: 43 }, { text: "It was a weak storm after all.", target: 46 }] },
+            // Page 34-39: Wrong Paths for Q4
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Flicking the switches could be dangerous. There might be damage to the wiring." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "It's safer to turn off the main power source and use your torch until the storm is completely over." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "What's the safest way to handle your home's electricity during a storm?", choices: [{ text: "Try again", target: 24 }] },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "The power might come back, but there could be a dangerous power surge that could start a fire." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "Also, downed power lines outside could be live. It's best to cut the power from the mains." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "How can you prevent electrical dangers after the power goes out?", choices: [{ text: "Try again", target: 24 }] },
+            // Page 40: Correct Path 5
+            { bg: 'houseInside', speaker: 'Khushi', dialogue: "Exactly! The calm is just the center of the cyclone. The winds will start again soon from the opposite direction!" },
+            // Page 41: Conclusion
+            { bg: 'shelter', speaker: 'Narrator', dialogue: "They wait patiently. Soon the winds return, but eventually, the storm passes completely. They listen to the radio for the official 'all clear'." },
+            { bg: 'shelter', speaker: 'Congratulations!', dialogue: "You understood the dangers and made all the right choices. You successfully weathered the storm!", type: 'end' },
+            // Page 43-48: Wrong Paths for Q5
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "This is a common and very dangerous mistake. The calm in the middle of a cyclone is called the 'eye'." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "The storm is only half over. The winds will soon return, just as strong as before." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "A sudden calm during a cyclone is a warning sign. What is it called?", choices: [{ text: "Try again", target: 33 }] },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "The storm might seem over, but the calm is deceptive. This is the most dangerous part of the cyclone if you're not prepared." },
+            { bg: 'houseInside', speaker: 'Narrator', dialogue: "The 'eye' can last for a short while, but the second half of the storm will follow." },
+            { bg: 'houseInside', speaker: 'Safety Tip', dialogue: "What is the name for this calm period in the middle of a cyclone?", choices: [{ text: "Try again", target: 33 }] },
+        ];
+
+
+        // --- IMAGE LOADING ---
+        function preloadImages(callback) {
+            const sources = Object.keys(imageSources);
+            if (sources.length === 0) { // Handle case with no images
+                callback();
+                return;
+            }
+            sources.forEach(name => {
+                images[name] = new Image();
+                images[name].onload = () => { 
+                    loadedImagesCount++;
+                    if (loadedImagesCount === sources.length) {
+                        callback(); // Fire the callback when all images are loaded
+                    }
+                };
+                images[name].src = imageSources[name];
+            });
+        }
+
+        // --- CORE GAME FUNCTIONS ---
+        function drawPage() {
+            const page = story[currentPage];
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            if (images[page.bg]) {
+                ctx.drawImage(images[page.bg], 0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function updateUI() {
+            const page = story[currentPage];
+
+            if (page.type === 'end') {
+                showEndScreen();
+                return;
+            }
+
+            dialogueBox.style.display = 'block';
+            speakerName.textContent = page.speaker;
+            dialogueText.textContent = page.dialogue;
+
+            if (page.choices) {
+                choicesContainer.style.display = 'flex';
+                nextBtn.style.display = 'none';
+                choiceButtons.forEach((button, index) => {
+                    if (page.choices[index]) {
+                        button.style.display = 'block';
+                        button.textContent = page.choices[index].text;
+                        button.onclick = () => { currentPage = page.choices[index].target; renderScene(); };
+                    } else {
+                        button.style.display = 'none';
+                    }
+                });
+            } else {
+                choicesContainer.style.display = 'none';
+                nextBtn.style.display = (currentPage >= story.length - 1) ? 'none' : 'block';
+            }
+        }
+        
+        function renderScene() {
+            if (currentPage >= story.length) currentPage = story.length - 1;
+            drawPage();
+            updateUI();
+        }
+        
+        function showEndScreen() {
+            gameContainer.style.display = 'none';
+            endScreen.style.display = 'flex';
+        }
+
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', () => {
+            startBtn.textContent = 'Loading...';
+            startBtn.disabled = true; // Prevent multiple clicks
+            if (!gameStarted) {
+                preloadImages(() => {
+                    gameStarted = true;
+                    startScreen.style.display = 'none';
+                    gameContainer.style.display = 'block';
+                    renderScene();
+                });
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const page = story[currentPage];
+            if (page.nextTarget !== undefined) {
+                currentPage = page.nextTarget;
+            } else if (currentPage < story.length - 1) {
+                currentPage++;
+            }
+            renderScene();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            endScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
+            currentPage = 0;
+            renderScene();
+        });
+
+        // REMOVED old exit button listener
+
+    </script>
+</body>
+</html>

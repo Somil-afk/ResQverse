@@ -62,6 +62,72 @@ app.get('/log', (req, res) => {
   res.render('log'); // Renders your login/signup form
 });
 
+app.get('/comicdash', (req, res) => {
+  res.render('comicdash'); 
+});
+app.get('/simulation', (req, res) => {
+  res.render('simulation'); 
+});
+
+
+
+
+
+
+/*
+_                                                _
+_                                                _
+   *****            games routes      *********
+
+                          */
+
+   
+app.get('/aftershock', (req, res) => {
+  res.render('aftershock'); 
+});
+app.get('/chemicalspill', (req, res) => {
+  res.render('chemicalspill'); 
+});
+app.get('/cyclone', (req, res) => {
+  res.render('cyclone'); 
+});
+app.get('/earthquake', (req, res) => {
+  res.render('earthquake'); 
+});
+app.get('/flood', (req, res) => {
+  res.render('flood'); 
+});
+app.get('/fire', (req, res) => {
+  res.render('fire'); 
+});
+app.get('/lockdown', (req, res) => {
+  res.render('lockdown'); 
+});
+
+/* comics games routes */
+app.get('/Caftershock', (req, res) => {
+  res.render('Caftershock'); 
+});
+app.get('/Cchemical', (req, res) => {
+  res.render('Cchemical'); 
+});
+app.get('/Ccyclone', (req, res) => {
+  res.render('Ccyclone'); 
+});
+app.get('/Cearthquake', (req, res) => {
+  res.render('Cearthquake'); 
+});
+app.get('/Cflood', (req, res) => {
+  res.render('Cflood'); 
+});
+app.get('/Cfire', (req, res) => {
+  res.render('Cfire'); 
+});
+app.get('/Clockdown', (req, res) => {
+  res.render('Clockdown'); 
+});
+
+
 // Protected dashboard route - requires authentication
 app.get('/dashboard', requireAuth, async (req, res) => {
   try {

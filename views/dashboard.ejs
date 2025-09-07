@@ -562,20 +562,24 @@
       });
     }
 
-    function initGameCardActions(){
-      document.querySelectorAll('.game-card').forEach(card => {
-        card.addEventListener('click', ()=>{
-          const mode = card.dataset.action;
-          if(mode === 'story'){
-            console.log('[Story Game] Launch placeholder');
-            alert('Story Game placeholder – integrate narrative engine next.');
-          } else if(mode === 'simulation') {
-            console.log('[Simulation] Launch placeholder');
-            alert('Simulation placeholder – hook existing 2D engine.');
-          }
-        });
-      });
-    }
+    function initGameCardActions() {
+  document.querySelectorAll('.game-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const mode = card.dataset.action;
+
+      if (mode === 'story') {
+        console.log('[Story Game] Redirecting to /comicdash');
+        window.location.href = '/comicdash'; // Navigate to story game
+      } else if (mode === 'simulation') {
+        console.log('[Simulation] Redirecting to /simulation');
+        window.location.href = '/simulation'; // Or whatever your simulation route is
+      }
+    });
+  });
+}
+
+      
+    
 
     function initYear(){
       document.getElementById('year').textContent = new Date().getFullYear();

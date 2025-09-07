@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aftershock Safety Adventure</title>
+    <style>
+        /* General page styling */
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #333;
+            color: #333;
+        }
+
+        /* The main container for the game canvas and UI */
+        #game-container {
+            width: 800px;
+            height: 600px;
+            border: 5px solid #000;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background-color: #fff;
+            display: none; /* Hidden by default, shown after start */
+        }
+
+        /* Start and End Screen Styling */
+        #start-screen, #end-screen {
+            width: 800px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: #fbe9e7;
+            border: 5px solid #000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-title {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            color: #bf360c;
+        }
+        
+        .game-subtitle {
+            font-size: 1.5em;
+            margin-bottom: 40px;
+        }
+
+        .action-btn {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #ff7043;
+            color: white;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .action-btn:hover {
+            background-color: #f4511e;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        #end-screen .action-btn {
+            background-color: #5cb85c;
+        }
+        #end-screen .action-btn:hover {
+             background-color: #4cae4c;
+        }
+
+        /* The canvas where the comic panels are drawn */
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Dialogue box styling */
+        #dialogue-box {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 4px solid #000;
+            border-radius: 15px;
+            padding: 15px 20px;
+            z-index: 3;
+            font-size: 1.3em;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        
+        #speaker-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #bf360c;
+        }
+
+        #dialogue-text {
+            margin: 0;
+        }
+
+        /* Next button styling */
+        #next-btn {
+            position: absolute;
+            bottom: 25px;
+            right: 30px;
+            padding: 10px 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            border: 3px solid #000;
+            background-color: #ff7043;
+            color: white;
+            border-radius: 10px;
+            z-index: 4;
+            box-shadow: 3px 3px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #next-btn:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        /* Container for multiple choice questions */
+        #choices-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 15px;
+            width: 80%;
+            max-width: 450px;
+        }
+
+        .choice-btn {
+            padding: 15px;
+            font-size: 1.1em;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            cursor: pointer;
+            background-color: #bf360c;
+            color: white;
+            border: 3px solid #000;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+        
+        .choice-btn:hover {
+            background-color: #ff7043;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+        
+        /* Shake animation for earthquake effect */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .shake {
+            animation: shake 0.5s infinite;
+        }
+        
+        /* ADDED: Styles for the new persistent exit button */
+        #persistent-exit-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: #e53e3e;
+            color: white;
+            border: 3px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            font-size: 28px;
+            line-height: 1;
+            font-weight: bold;
+            text-decoration: none;
+            z-index: 1000;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.1s ease-in-out;
+        }
+
+        #persistent-exit-button:hover {
+            background-color: #c53030;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+    </style>
+</head>
+<body>
+    <a href="/dashboard" id="persistent-exit-button">&times;</a>
+
+    <div id="start-screen">
+        <h1 class="game-title">Aftershock Safety Adventure</h1>
+        <p class="game-subtitle">A story about staying safe after an earthquake.</p>
+        <button id="start-btn" class="action-btn">Start Adventure</button>
+    </div>
+
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+
+        <div id="dialogue-box">
+            <p id="speaker-name">Ishaan</p>
+            <p id="dialogue-text">Loading...</p>
+        </div>
+        
+        <div id="choices-container">
+            <button class="choice-btn" id="choice1"></button>
+            <button class="choice-btn" id="choice2"></button>
+            <button class="choice-btn" id="choice3"></button>
+        </div>
+
+        <button id="next-btn">Next ▶</button>
+    </div>
+    
+    <div id="end-screen" style="display: none;">
+        <h1 class="game-title">You Made It Through!</h1>
+        <p class="game-subtitle">You understood the dangers of aftershocks and made smart choices. What's next?</p>
+        <div>
+            <button id="restart-btn" class="action-btn">Play Again</button>
+            </div>
+    </div>
+
+    <script>
+        // --- DOM ELEMENT REFERENCES ---
+        const startScreen = document.getElementById('start-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        // REMOVED: const exitBtn = document.getElementById('exit-btn');
+        const gameContainer = document.getElementById('game-container');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const dialogueBox = document.getElementById('dialogue-box');
+        const speakerName = document.getElementById('speaker-name');
+        const dialogueText = document.getElementById('dialogue-text');
+        const nextBtn = document.getElementById('next-btn');
+        const choicesContainer = document.getElementById('choices-container');
+        const choiceButtons = [
+            document.getElementById('choice1'),
+            document.getElementById('choice2'),
+            document.getElementById('choice3')
+        ];
+
+        // --- GAME STATE ---
+        let currentPage = 0;
+        let images = {}; // Will hold all loaded image objects
+        let loadedImagesCount = 0;
+        let imagesReady = false; // Flag to track if images have finished loading
+        let startClicked = false; // Flag to track if the user has clicked "Start"
+
+        // --- IMAGE DEFINITIONS ---
+        const imageSources = {
+            damagedRoom: 'images/outsidea.png',
+            outsideStreet: 'images/room.png',
+        };
+
+        // --- STORY DEFINITION ---
+        const story = [
+            // Page 0-2: Intro
+            { bg: 'damagedRoom', speaker: 'Ishaan', dialogue: "Phew, that was the biggest earthquake I've ever felt. I'm glad we're all okay." },
+            { bg: 'damagedRoom', speaker: 'Meera', dialogue: "Me too. Look at the crack in the wall. The radio said to expect aftershocks." },
+            { bg: 'damagedRoom', speaker: 'Sound', dialogue: "*RUMBLE...* Oh no! Here comes another one! It's starting again!" },
+            // Page 3: Question 1
+            { bg: 'damagedRoom', speaker: 'Ishaan', dialogue: "It's an aftershock! What do we do?", choices: [{ text: "Drop, Cover, and Hold On, just like before.", target: 4 }, { text: "Run outside immediately.", target: 10 }, { text: "Freeze and wait for it to stop.", target: 13 }], shake: true },
+            // Page 4: Correct Path 1
+            { bg: 'damagedRoom', speaker: 'Meera', dialogue: "Quick, under the dining table again! Stay away from the windows!", shake: true },
+            { bg: 'damagedRoom', speaker: 'Narrator', dialogue: "They take cover as the house shakes violently for another minute before growing still again.", shake: true },
+            // Page 6: Question 2
+            { bg: 'damagedRoom', speaker: 'Ishaan', dialogue: "That was almost as strong as the first one! I don't feel safe here. Should we go back outside?", choices: [{ text: "Yes, but we must exit carefully.", target: 7 }, { text: "No, it's safer to stay inside.", target: 16 }, { text: "Let's go to the roof for safety.", target: 19 }] },
+            // Page 7: Correct Path 2
+            { bg: 'damagedRoom', speaker: 'Meera', dialogue: "Okay. Let's evacuate again. We need to watch for new cracks or things that might fall as we leave." },
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "They carefully make their way outside to an open area, away from the house." },
+            // Page 9: Question 3
+            { bg: 'outsideStreet', speaker: 'Ishaan', dialogue: "We're outside. I hear a hissing sound and smell something strange, like rotten eggs. What could that be?", choices: [{ text: "A possible gas leak, a serious danger.", target: 22 }, { text: "It's probably just the sewers.", target: 25 }, { text: "Someone must be cooking nearby.", target: 28 }] },
+            // Page 10-15: Wrong Paths for Q1
+            { bg: 'damagedRoom', speaker: 'Narrator', dialogue: "Running during any shaking is dangerous. The first earthquake could have weakened the building, making it even more unstable.", shake: true },
+            { bg: 'damagedRoom', speaker: 'Narrator', dialogue: "You must always take cover first until the shaking stops." },
+            { bg: 'damagedRoom', speaker: 'Safety Tip', dialogue: "Treat every aftershock like it's a major earthquake. What's the golden rule?", choices: [{ text: "Try again", target: 3 }] },
+            { bg: 'damagedRoom', speaker: 'Narrator', dialogue: "Freezing is a natural reaction, but it leaves you exposed to falling objects.", shake: true },
+            { bg: 'damagedRoom', speaker: 'Narrator', dialogue: "You need to actively protect your head and neck by getting under something sturdy." },
+            { bg: 'damagedRoom', speaker: 'Safety Tip', dialogue: "How can you best protect yourself from things falling during the shaking?", choices: [{ text: "Try again", target: 3 }] },
+            // Page 16-21: Wrong Paths for Q2
+            { bg: 'damagedRoom', speaker: 'Narrator', dialogue: "After a strong aftershock, a damaged building could be close to collapsing. Staying inside is a huge risk." },
+            { bg: 'damagedRoom', speaker: 'Narrator', dialogue: "The safest place is always outdoors in an open space, away from buildings." },
+            { bg: 'damagedRoom', speaker: 'Safety Tip', dialogue: "After the shaking stops, where should you go?", choices: [{ text: "Try again", target: 6 }] },
+            { bg: 'damagedRoom', speaker: 'Narrator', dialogue: "The roof is one of the most dangerous places to be. It could collapse, and you would have no way to escape." },
+            { bg: 'damagedRoom', speaker: 'Narrator', dialogue: "Always move to the ground floor and get outside to an open area." },
+            { bg: 'damagedRoom', speaker: 'Safety Tip', dialogue: "Think about a safe escape route. Where does it lead?", choices: [{ text: "Try again", target: 6 }] },
+            // Page 22: Correct Path 3
+            { bg: 'outsideStreet', speaker: 'Meera', dialogue: "That smell means a gas leak! It's very dangerous and could cause an explosion. We need to move away from here and warn others." },
+            // Page 23: New Event
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "They move further down the street, telling their neighbours to stay clear. Some people are sharing news from their phones." },
+            // Page 24: Question 4
+            { bg: 'outsideStreet', speaker: 'Ishaan', dialogue: "Someone just posted online that a tsunami is coming to Guwahati! What should we do?", choices: [{ text: "Ignore it. It's a false rumor.", target: 31 }, { text: "Panic and run for the hills.", target: 34 }, { text: "Share the post to warn everyone.", target: 37 }] },
+            // Page 25-30: Wrong Paths for Q3
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "It might be, but you can't take that risk. The smell of rotten eggs is added to natural gas specifically to warn us of leaks." },
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "Always assume a strange smell after an earthquake is a dangerous leak until a professional says otherwise." },
+            { bg: 'outsideStreet', speaker: 'Safety Tip', dialogue: "What is the most serious potential cause of that smell?", choices: [{ text: "Try again", target: 9 }] },
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "It's very unlikely someone would be cooking right after a major aftershock. The smell is a classic sign of a gas leak." },
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "In emergencies, you must consider the most dangerous possibility first to stay safe." },
+            { bg: 'outsideStreet', speaker: 'Safety Tip', dialogue: "After an earthquake, what dangerous utility line might break?", choices: [{ text: "Try again", target: 9 }] },
+            // Page 31: Correct Path 4
+            { bg: 'outsideStreet', speaker: 'Meera', dialogue: "That's impossible. Guwahati is hundreds of kilometers inland from the sea! It must be a fake rumor. We should only trust the official news on the radio." },
+            // Page 32: New Event
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "They find their small battery-powered radio and tune into the official news channel, which gives accurate updates and instructions." },
+            // Page 33: Question 5
+            { bg: 'outsideStreet', speaker: 'Ishaan', dialogue: "The radio says our area is cleared for now, and we should check on our neighbours. What's the most important thing to watch out for while walking?", choices: [{ text: "Downed power lines and unstable walls.", target: 40 }, { text: "Cracks in the pavement.", target: 43 }, { text: "People's pets that might be lost.", target: 46 }] },
+            // Page 34-39: Wrong Paths for Q4
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "Panicking based on a rumor is dangerous. You could get lost or hurt, and cause others to panic too." },
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "Always think critically: Does the information make sense? Is it from a reliable source?" },
+            { bg: 'outsideStreet', speaker: 'Safety Tip', dialogue: "How can you verify if information is true or false?", choices: [{ text: "Try again", target: 24 }] },
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "Sharing unverified information can spread fear and panic, making the emergency worse. This can be very dangerous." },
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "You should only share official information from sources like the radio or emergency services." },
+            { bg: 'outsideStreet', speaker: 'Safety Tip', dialogue: "What is the responsible way to share information during an emergency?", choices: [{ text: "Try again", target: 24 }] },
+            // Page 40: Correct Path 5
+            { bg: 'outsideStreet', speaker: 'Meera', dialogue: "Definitely. Downed power lines could be live and are extremely dangerous. And parts of buildings could still fall. We need to stay in the open as much as possible." },
+            // Page 41: Conclusion
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "They carefully check on their neighbours and share the correct information from the radio, helping everyone stay calm and safe." },
+            { bg: 'outsideStreet', speaker: 'Congratulations!', dialogue: "You correctly identified and reacted to the dangers of aftershocks. You are a true safety expert!", type: 'end' },
+            // Page 43-48: Wrong Paths for Q5
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "While you should watch your step, small cracks in the pavement are not the biggest threat." },
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "The most life-threatening dangers after an earthquake are things like electrocution from power lines or being hit by falling debris." },
+            { bg: 'outsideStreet', speaker: 'Safety Tip', dialogue: "What hazards could cause the most serious injury?", choices: [{ text: "Try again", target: 33 }] },
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "It's kind to worry about lost pets, but your own safety must come first. You can't help others if you get hurt." },
+            { bg: 'outsideStreet', speaker: 'Narrator', dialogue: "Focus on navigating the area safely, and let animal rescue professionals handle lost pets." },
+            { bg: 'outsideStreet', speaker: 'Safety Tip', dialogue: "What are the most immediate physical dangers in the area right now?", choices: [{ text: "Try again", target: 33 }] },
+        ];
+
+
+        // --- CORE GAME FUNCTIONS ---
+        function startGame() {
+            startScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
+            renderScene();
+        }
+
+        // --- IMAGE LOADING ---
+        function preloadImages() {
+            const sources = Object.keys(imageSources);
+            if (sources.length === 0) {
+                imagesReady = true;
+                return;
+            }
+            
+            sources.forEach(name => {
+                images[name] = new Image();
+                images[name].onload = () => { 
+                    loadedImagesCount++;
+                    if (loadedImagesCount === sources.length) {
+                        imagesReady = true;
+                        // If user clicked start while images were loading, begin the game now.
+                        if (startClicked) {
+                            startGame();
+                        }
+                    }
+                };
+                images[name].src = imageSources[name];
+            });
+        }
+
+        // --- Other Game Functions ---
+        function drawPage() {
+            const page = story[currentPage];
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+            if (images[page.bg]) ctx.drawImage(images[page.bg], 0, 0, canvas.width, canvas.height);
+        }
+
+        function updateUI() {
+            const page = story[currentPage];
+
+            if (page.type === 'end') {
+                showEndScreen();
+                return;
+            }
+
+            dialogueBox.style.display = 'block';
+            speakerName.textContent = page.speaker;
+            dialogueText.textContent = page.dialogue; 
+            
+            gameContainer.classList.toggle('shake', !!page.shake);
+
+            if (page.choices) {
+                choicesContainer.style.display = 'flex';
+                nextBtn.style.display = 'none';
+                choiceButtons.forEach((button, index) => {
+                    if (page.choices[index]) {
+                        button.style.display = 'block';
+                        button.textContent = page.choices[index].text;
+                        button.onclick = () => { currentPage = page.choices[index].target; renderScene(); };
+                    } else {
+                        button.style.display = 'none';
+                    }
+                });
+            } else {
+                choicesContainer.style.display = 'none';
+                nextBtn.style.display = (currentPage >= story.length - 1) ? 'none' : 'block';
+            }
+        }
+        
+        function renderScene() {
+            if (currentPage >= story.length) currentPage = story.length - 1;
+            drawPage();
+            updateUI();
+        }
+        
+        function showEndScreen() {
+            gameContainer.style.display = 'none';
+            endScreen.style.display = 'flex';
+        }
+
+        // --- EVENT LISTENERS ---
+        startBtn.addEventListener('click', () => {
+            startClicked = true;
+            // If images are already preloaded, start the game instantly.
+            if (imagesReady) {
+                startGame();
+            } else {
+                // If images are still loading, just show the loading text.
+                // The game will start automatically when loading is complete.
+                startBtn.textContent = 'Loading...';
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            const page = story[currentPage];
+            if (page.nextTarget !== undefined) {
+                currentPage = page.nextTarget;
+            } else if (currentPage < story.length - 1) {
+                currentPage++;
+            }
+            renderScene();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            endScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
+            currentPage = 0;
+            renderScene();
+        });
+
+        // REMOVED old exit button listener
+
+        // --- INITIALIZE ---
+        // Start preloading images immediately when the script runs.
+        preloadImages();
+    </script>
+</body>
+</html>
