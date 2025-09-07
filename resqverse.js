@@ -31,10 +31,23 @@ const userSchema = new mongoose.Schema({
   state: String,
   pincode: String,
   password: String, // hashed password for legacy / non-Firebase users
-  firebaseUid: { type: String, index: true } // link to Firebase Auth user
+  firebaseUid: { type: String, index: true }, // link to Firebase Auth user
+  isAdmin: { type: Boolean, default: false }
 });
 
 const User = mongoose.model('User', userSchema);
+
+// Alert schema for disaster updates
+const alertSchema = new mongoose.Schema({
+  pincode: { type: String, required: true, match: /^\d{6}$/ },
+  type: { type: String, required: true, enum: ['earthquake','flood','fire','cyclone','landslide','pandemic','other'] },
+  severity: { type: String, enum: ['info','low','moderate','high','critical'], default: 'info' },
+  message: { type: String, default: '' },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  createdAt: { type: Date, default: Date.now }
+});
+alertSchema.index({ pincode: 1, createdAt: -1 });
+const Alert = mongoose.model('Alert', alertSchema);
 
 // Middleware
 app.use(express.urlencoded({ extended: true }));
@@ -68,6 +81,49 @@ const requireAuth = (req, res, next) => {
 const requireAuthApi = (req, res, next) => {
   if (req.session.userId) return next();
   return res.status(401).json({ success: false, message: 'Not authenticated' });
+};
+
+// Admin middleware (checks user.isAdmin OR email in ADMIN_EMAILS env list)
+const requireAdmin = async (req, res, next) => {
+  try {
+    if (!req.session.userId) return res.redirect('/log');
+    const user = await User.findById(req.session.userId);
+    if (!user) return res.redirect('/log');
+    const adminList = (process.env.ADMIN_EMAILS || '')
+      .split(',')
+      .map(e => e.trim().toLowerCase())
+      .filter(Boolean);
+    if (user.isAdmin || (user.email && adminList.includes(user.email.toLowerCase()))) {
+      if (!user.isAdmin) { user.isAdmin = true; await user.save(); }
+      req.currentUser = user;
+      return next();
+    }
+    return res.status(403).send('Forbidden: Admins only');
+  } catch (err) {
+    console.error('Admin check error:', err);
+    return res.status(500).send('Server error');
+  }
+};
+
+const requireAdminApi = async (req, res, next) => {
+  try {
+    if (!req.session.userId) return res.status(401).json({ success:false, message:'Not authenticated' });
+    const user = await User.findById(req.session.userId);
+    if (!user) return res.status(401).json({ success:false, message:'Not authenticated' });
+    const adminList = (process.env.ADMIN_EMAILS || '')
+      .split(',')
+      .map(e => e.trim().toLowerCase())
+      .filter(Boolean);
+    if (user.isAdmin || (user.email && adminList.includes(user.email.toLowerCase()))) {
+      if (!user.isAdmin) { user.isAdmin = true; await user.save(); }
+      req.currentUser = user;
+      return next();
+    }
+    return res.status(403).json({ success:false, message:'Forbidden: Admins only' });
+  } catch (err) {
+    console.error('Admin check error:', err);
+    return res.status(500).json({ success:false, message:'Server error' });
+  }
 };
 
 // Routes
@@ -208,6 +264,35 @@ app.post('/firebase-session-login', async (req, res) => {
     console.error('Firebase ID token verify error:', e);
     res.status(401).json({ success: false, message: 'Invalid Firebase token' });
   }
+});
+
+// Admin page
+app.get('/admin', requireAdmin, async (req, res) => {
+  const recentAlerts = await Alert.find().sort({ createdAt: -1 }).limit(20).lean();
+  res.render('admin', { alerts: recentAlerts, user: req.currentUser });
+});
+
+// Create alert
+app.post('/admin/alerts', requireAdminApi, async (req, res) => {
+  const { pincode, type, severity, message } = req.body;
+  if (!/^\d{6}$/.test(pincode)) return res.status(400).json({ success:false, message:'Invalid pincode' });
+  if (!type) return res.status(400).json({ success:false, message:'Type required' });
+  try {
+    const alert = await Alert.create({ pincode, type, severity: severity || 'info', message: message || '', createdBy: req.currentUser._id });
+    res.json({ success:true, alert });
+  } catch (err) {
+    console.error('Create alert error:', err);
+    res.status(500).json({ success:false, message:'Server error creating alert' });
+  }
+});
+
+// Query alerts by pincode (optional public API for future dashboard display)
+app.get('/api/alerts', async (req, res) => {
+  const { pincode } = req.query;
+  const criteria = {};
+  if (pincode && /^\d{6}$/.test(pincode)) criteria.pincode = pincode;
+  const alerts = await Alert.find(criteria).sort({ createdAt: -1 }).limit(50).lean();
+  res.json({ success:true, alerts });
 });
 
 // Start server
