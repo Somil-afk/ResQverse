@@ -1,0 +1,8 @@
+{
+  "builds": [
+    { "src": "resqverse.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "resqverse.js" }
+  ]
+}
