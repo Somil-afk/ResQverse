@@ -1,11 +1,4 @@
 {
-  "name": "your-app-name",
-  "version": "1.0.0",
-  "main": "resqverse.js",
-  "scripts": {
-    "start": "node resqverse.js",
-    "dev": "nodemon resqverse.js"
-  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
