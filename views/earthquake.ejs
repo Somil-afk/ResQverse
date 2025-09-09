@@ -8,19 +8,35 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        body {
+        /* General Styles */
+        html, body {
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            height: 100vh;
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* Prevents scrollbars */
             background-color: #2c3e50;
             font-family: 'Press Start 2P', cursive;
             color: white;
-            overflow: hidden; /* Prevents scrollbars from appearing */
         }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box; /* Include padding in height/width calculation */
+            padding: 10px;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            margin: 0 0 1rem 0; /* Adjusted margin */
+            text-shadow: 2px 2px 4px #000;
+            text-align: center;
+            flex-shrink: 0; /* Prevent title from shrinking */
+        }
+
         #game-container {
             border: 5px solid #ecf0f1;
             border-radius: 10px;
@@ -28,56 +44,44 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
             width: 95%;
             max-width: 800px;
-            aspect-ratio: 16 / 9; /* Maintain a widescreen aspect ratio */
-            position: relative; /* For positioning canvas and controls */
+            position: relative;
+            /* Aspect ratio for desktop */
+            aspect-ratio: 16 / 9;
         }
+
         canvas {
             display: block;
             width: 100%;
             height: 100%;
             background-color: #87CEEB; /* Sky blue background */
         }
-        h1 {
-            font-size: 1.2rem; /* Adjusted for longer titles */
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px #000;
-            height: 2rem;
-            text-align: center;
-        }
-        /* ADD THESE STYLES FOR THE EXIT BUTTON */
+
         #exit-btn {
-          position: absolute;
-          top: 15px;
-          right: 20px;
-          color: white;
-          font-size: 24px;
-          text-decoration: none;
-          z-index: 100; /* Ensures it stays on top of other elements */
-          text-shadow: 2px 2px 4px #000;
-          font-family: sans-serif; /* A simple X looks better in a standard font */
-          padding: 5px 10px;
-          background-color: rgba(231, 76, 60, 0.7); /* A transparent red */
-          border: 2px solid white;
-          border-radius: 8px;
-          cursor: pointer;
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: white;
+            font-size: 24px;
+            text-decoration: none;
+            z-index: 100;
+            text-shadow: 2px 2px 4px #000;
+            font-family: sans-serif;
+            padding: 5px 10px;
+            background-color: rgba(231, 76, 60, 0.7);
+            border: 2px solid white;
+            border-radius: 8px;
+            cursor: pointer;
         }
         #exit-btn:hover {
-        background-color: rgba(192, 57, 43, 1.0); /* Darker red on hover */
+            background-color: rgba(192, 57, 43, 1.0);
         }
-        /* END OF NEW STYLES */
 
-
-        
         /* On-screen controls for mobile */
         #controls {
-            position: absolute;
-            bottom: 15px;
-            left: 0;
+            display: none; /* Hidden by default */
             width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding: 0 20px;
+            max-width: 800px;
+            padding-top: 15px;
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none; /* For Safari */
@@ -89,15 +93,15 @@
         }
 
         .control-btn {
-            width: 50px;
-            height: 50px;
+            width: 60px; /* Slightly larger for easier tapping */
+            height: 60px;
             background: rgba(255, 255, 255, 0.3);
             border: 2px solid rgba(255, 255, 255, 0.7);
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
+            font-size: 30px; /* Larger icon */
             color: white;
             font-weight: bold;
             text-shadow: 1px 1px 2px #000;
@@ -108,33 +112,57 @@
             transform: scale(0.95);
         }
 
-        @media (min-width: 768px) {
+        /* --- MOBILE-SPECIFIC LAYOUT --- */
+        @media (max-width: 768px) {
+            body {
+                /* Make body a container that fills the screen and arranges items */
+                justify-content: space-between;
+                padding: 10px;
+            }
+
+            #game-container {
+                /* The game container should take up all available vertical space */
+                flex-grow: 1;
+                width: 100%; /* Fill width */
+                height: auto;
+                aspect-ratio: unset; /* Remove fixed aspect ratio on mobile */
+            }
+
             #controls {
-                display: none; /* Hide on-screen controls on larger screens */
+                /* Display controls and arrange them at the bottom */
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-shrink: 0; /* Prevent controls from shrinking */
+                position: static; /* Remove absolute positioning */
+                padding-left: 10px;
+                padding-right: 10px;
             }
         }
     </style>
 </head>
 <body>
-    <a href="/dashboard" id="exit-btn">✖</a> <h1 id="level-title">Earthquake Safety Drill</h1>
-    <div id="game-container">
+    <a href="/dashboard" id="exit-btn">✖</a>
     <h1 id="level-title">Earthquake Safety Drill</h1>
+
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
-        <!-- On-screen controls for mobile -->
-        <div id="controls">
-            <div class="control-group">
-                <div class="control-btn" id="left-btn">◀</div>
-                <div class="control-btn" id="right-btn">▶</div>
-            </div>
-            <div class="control-group">
-                <div class="control-btn" id="crouch-btn">▼</div>
-                <div class="control-btn" id="jump-btn">▲</div>
-            </div>
+    </div>
+
+    <div id="controls">
+        <div class="control-group">
+            <div class="control-btn" id="left-btn">◀</div>
+            <div class="control-btn" id="right-btn">▶</div>
+        </div>
+        <div class="control-group">
+            <div class="control-btn" id="crouch-btn">▼</div>
+            <div class="control-btn" id="jump-btn">▲</div>
+            <div class="control-btn" id="enter-btn">E</div>
         </div>
     </div>
 
     <script>
+        // --- JAVASCRIPT IS UNCHANGED EXCEPT FOR setupTouchControls() ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const gameContainer = document.getElementById('game-container');
@@ -231,16 +259,27 @@
 
         // --- Touch Controls ---
         function setupTouchControls() {
-            const leftBtn = document.getElementById('left-btn'), rightBtn = document.getElementById('right-btn');
-            const jumpBtn = document.getElementById('jump-btn'), crouchBtn = document.getElementById('crouch-btn');
+            const leftBtn = document.getElementById('left-btn');
+            const rightBtn = document.getElementById('right-btn');
+            const jumpBtn = document.getElementById('jump-btn');
+            const crouchBtn = document.getElementById('crouch-btn');
+            const enterBtn = document.getElementById('enter-btn'); // Get the new enter button
+
             leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; });
             leftBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; });
+
             rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; });
             rightBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; });
+
             jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.up = true; });
             jumpBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys.up = false; });
+
             crouchBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.down = true; });
             crouchBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys.down = false; });
+
+            // Add event listeners for the new enter button
+            enterBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.enter = true; });
+            enterBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys.enter = false; });
             
             canvas.addEventListener('touchstart', function startGameOnTouch() {
                 if (!gameStarted) {
@@ -253,7 +292,7 @@
         }
 
         // --- Drawing Functions ---
-        function drawPlayer() { /* ... identical to previous version ... */ }
+        function drawPlayer() { /* ... identical ... */ }
         function drawObjects() {
             // Floor
             ctx.fillStyle = '#27ae60';
@@ -278,7 +317,6 @@
                 }
             });
         }
-        // ... (New drawing functions for each object type)
         function drawTable(obj) {
             ctx.fillStyle = '#8B4513';
             ctx.fillRect(obj.x, obj.y, obj.width, 15);
@@ -536,7 +574,11 @@
             const rect = gameContainer.getBoundingClientRect();
             canvas.width = rect.width; canvas.height = rect.height;
             canvasWidth = canvas.width; canvasHeight = canvas.height;
-            setupScenarioObjects();
+            // Only setup objects if a scenario is loaded
+            if (currentScenario) {
+                 setupScenarioObjects();
+            }
+            // Keep player on the floor after resize
             if (player.y + player.height > canvasHeight - floor.height) {
                  player.y = canvasHeight - floor.height - player.height;
             }
@@ -554,7 +596,8 @@
             gameOver = false; gameWon = false; isEarthquake = false;
             timer = 20; score = 0; debris = []; messageTimer = 0;
             
-            setupScenarioObjects();
+            // This needs to be called after a scenario is chosen and canvas is sized
+            resizeCanvas();
             
             player.x = currentScenario.playerStart.x;
             player.y = canvasHeight - floor.height - player.height - 100;
@@ -570,22 +613,27 @@
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('keyup', handleKeyUp);
             setupTouchControls();
-            resizeCanvas();
+            resizeCanvas(); // Initial size calculation
             loop();
         }
 
         // Re-assigning drawPlayer and UI functions to avoid hiding them in comments
         drawPlayer = function() {
+            // Head
             ctx.fillStyle = '#ffcc99'; 
             ctx.fillRect(player.x, player.y, player.width, player.width * 0.75); 
+            // Hair
             ctx.fillStyle = '#e74c3c'; 
             ctx.fillRect(player.x, player.y + 5, player.width, 10);
+            // Eyes
             ctx.fillStyle = 'white';
             ctx.fillRect(player.x + 8, player.y + 15, 8, 8);
             ctx.fillRect(player.x + player.width - 16, player.y + 15, 8, 8);
+            // Pupils
             ctx.fillStyle = 'black';
             ctx.fillRect(player.x + 12, player.y + 19, 4, 4);
             ctx.fillRect(player.x + player.width - 12, player.y + 19, 4, 4);
+            // Body
             const bodyY = player.y + player.width * 0.75;
             const bodyHeight = player.height - (player.width * 0.75);
             ctx.fillStyle = '#3498db';
