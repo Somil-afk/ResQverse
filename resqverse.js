@@ -78,6 +78,40 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// --- Daily purge of old alerts ---
+// Keep only alerts created on the current day. Alerts older than today's 00:00:00
+// will be removed to avoid DB growth. We run an immediate purge on startup
+// and schedule a job to run every midnight server-local time.
+async function purgeOldAlerts() {
+  try {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const result = await Alert.deleteMany({ createdAt: { $lt: startOfToday } });
+    console.log(`[Purge] Deleted ${result.deletedCount || 0} alerts older than ${startOfToday.toISOString()}`);
+  } catch (err) {
+    console.error('Error during purgeOldAlerts:', err);
+  }
+}
+
+function scheduleDailyPurge() {
+  try {
+    const now = new Date();
+    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const msUntilNext = nextMidnight - now;
+    // Schedule first run at next midnight, then repeat every 24h
+    setTimeout(() => {
+      purgeOldAlerts();
+      setInterval(purgeOldAlerts, 24 * 60 * 60 * 1000);
+    }, msUntilNext);
+    console.log('[Purge] Scheduled daily alert purge at local midnight. First run in', Math.round(msUntilNext / 1000), 'seconds');
+  } catch (err) {
+    console.error('Error scheduling daily purge:', err);
+  }
+}
+
+// Run an immediate purge on startup (useful when deploying changes)
+purgeOldAlerts().then(() => scheduleDailyPurge());
+
 // Session config - using MongoDB store for persistence
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-key',
