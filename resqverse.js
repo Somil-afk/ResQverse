@@ -24,7 +24,7 @@ mongoose.connect(process.env.MONGODB_URI)
 .then(() => console.log('✅ MongoDB connected!'))
 .catch(err => console.error('❌ MongoDB connection error:', err));
 
-// Define Mongoose schema
+// Define Mongoose schemas
 const userSchema = new mongoose.Schema({
   username: String,
   email: String,
@@ -34,7 +34,16 @@ const userSchema = new mongoose.Schema({
   firebaseUid: { type: String, index: true } // link to Firebase Auth user
 });
 
+const alertSchema = new mongoose.Schema({
+  pincode: { type: String, required: true, index: true },
+  type: { type: String, required: true },
+  level: { type: String, required: true, enum: ['info', 'warning', 'danger'], default: 'info' },
+  message: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now, index: true }
+});
+
 const User = mongoose.model('User', userSchema);
+const Alert = mongoose.model('Alert', alertSchema);
 
 // Middleware
 app.use(express.urlencoded({ extended: true }));
@@ -213,7 +222,6 @@ app.post('/login', async (req, res) => {
     // Check hardcoded admin from .env FIRST
     if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
       req.session.isAdmin = true;
-      req.session.userId = null;
       req.session.user = { username: username, role: 'admin' };
       console.log('✅ Admin login successful');
       return res.json({ success: true, message: '✅ Admin login successful. Redirecting...', redirect: '/admin' });
@@ -333,9 +341,14 @@ app.route('/api/user/pincode')
   });
 
 // GET: Fetch all alerts (for users to see alerts for their pincode)
-app.get('/api/alerts', requireAuthApi, (req, res) => {
-  const alerts = req.app.locals.alerts || [];
-  return res.json({ success: true, alerts });
+app.get('/api/alerts', requireAuthApi, async (req, res) => {
+  try {
+    const alerts = await Alert.find().sort({ createdAt: -1 }).limit(500).lean();
+    return res.json({ success: true, alerts });
+  } catch (error) {
+    console.error('Error fetching alerts:', error);
+    return res.status(500).json({ success: false, alerts: [] });
+  }
 });
 
 // Ensure admin middleware
@@ -345,14 +358,19 @@ function ensureAdmin(req, res, next) {
 }
 
 // Admin panel route
-app.get('/admin', ensureAdmin, (req, res) => {
-  const user = req.session.user || { username: 'admin' };
-  const alerts = req.app.locals.alerts || [];
-  res.render('admin', { user, alerts });
+app.get('/admin', ensureAdmin, async (req, res) => {
+  try {
+    const user = req.session.user || { username: 'admin' };
+    const alerts = await Alert.find().sort({ createdAt: -1 }).limit(200).lean();
+    res.render('admin', { user, alerts });
+  } catch (error) {
+    console.error('Error loading admin panel:', error);
+    res.render('admin', { user: req.session.user || { username: 'admin' }, alerts: [] });
+  }
 });
 
 // POST: Create alert from admin panel
-app.post('/admin/alerts', ensureAdmin, (req, res) => {
+app.post('/admin/alerts', ensureAdmin, async (req, res) => {
   const { pincode, type, level = 'info', message } = req.body;
   if (!pincode || !/^\d{6}$/.test(pincode)) {
     return res.status(400).json({ success: false, message: 'Invalid pincode' });
@@ -360,9 +378,23 @@ app.post('/admin/alerts', ensureAdmin, (req, res) => {
   if (!type || !message) {
     return res.status(400).json({ success: false, message: 'Missing required fields' });
   }
-  const alert = { pincode, type, level, message, createdAt: new Date() };
-  if (!req.app.locals.alerts) req.app.locals.alerts = [];
-  req.app.locals.alerts.unshift(alert);
-  if (req.app.locals.alerts.length > 200) req.app.locals.alerts.pop();
-  return res.json({ success: true, alert });
+  
+  try {
+    const alert = await Alert.create({ pincode, type, level, message });
+    return res.json({ success: true, alert });
+  } catch (error) {
+    console.error('Error creating alert:', error);
+    return res.status(500).json({ success: false, message: 'Error saving alert' });
+  }
+});
+
+// GET: Fetch all alerts for admin API (no auth needed as admin dashboard is already protected)
+app.get('/admin/alerts', ensureAdmin, async (req, res) => {
+  try {
+    const alerts = await Alert.find().sort({ createdAt: -1 }).limit(200).lean();
+    return res.json({ success: true, alerts });
+  } catch (error) {
+    console.error('Error fetching admin alerts:', error);
+    return res.status(500).json({ success: false, alerts: [] });
+  }
 });
