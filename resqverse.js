@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const app = express();
 // Firebase Admin (for verifying ID tokens from client Firebase Auth)
 let admin;
@@ -50,12 +51,20 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Session config
+// Session config - using MongoDB store for persistence
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || 'fallback-secret-key',
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false } // Set to true if using HTTPS
+  saveUninitialized: false,
+  store: new MongoStore({
+    mongoUrl: process.env.MONGODB_URI,
+    touchAfter: 24 * 3600 // Lazy session update (in seconds)
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // true only on HTTPS in production
+    httpOnly: true, // Prevent XSS - don't let JS access the cookie
+    maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
+  }
 }));
 
 // View engine
