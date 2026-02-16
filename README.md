@@ -80,6 +80,10 @@ ResQverse/
 - For production, use HTTPS and set `cookie.secure: true` in session config
 - You can extend alert delivery with push notifications or real-time updates
 
----
+## Contributors
+This project was proudly developed by:
+Somil Jain
+Sumit Patel
+Suryansh Asati
 
 **For questions or contributions, open an issue or pull request!**
